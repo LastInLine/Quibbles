@@ -1,0 +1,7 @@
+{
+  "name": "Paper Tweaks",
+  "description": "A collection of personal tweaks to make PaperWM feel more at home in GNOME Shell.",
+  "uuid": "papertweaks@lastinline.gmail.com",
+  "shell-version": ["48", "49"],
+  "settings-schema": "org.gnome.shell.extensions.papertweaks"
+}

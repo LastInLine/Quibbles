@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.papertweaks" path="/org/gnome/shell/extensions/papertweaks/">
+
+    <!-- Top Panel Tweaks -->
+    <key name="remove-mouse-barrier" type="b">
+      <default>true</default>
+      <summary>Remove top-right corner mouse barrier</summary>
+    </key>
+    <key name="unclickable-activities-button" type="b">
+      <default>false</default>
+      <summary>Make the stock Activities button unclickable</summary>
+    </key>
+    
+    <!-- Window Menu Tweak -->
+    <key name="visible-items" type="as">
+      <default>[
+        "Scratch",
+        "Take Screenshot",
+        "Hide",
+        "Maximize",
+        "Move",
+        "Resize",
+        "Always on Top",
+        "Always on Visible Workspace",
+        "Move to Workspace Left",
+        "Move to Workspace Right",
+        "Move to Monitor Left",
+        "Move to Monitor Right",
+        "Close"
+      ]</default>
+      <summary>The window menu items to display.</summary>
+    </key>
+
+  </schema>
+</schemalist>
