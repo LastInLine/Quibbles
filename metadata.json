@@ -1,7 +1,7 @@
 {
-  "name": "Paper Tweaks",
-  "description": "A collection of personal tweaks to make PaperWM feel more at home in GNOME Shell.",
-  "uuid": "papertweaks@lastinline.gmail.com",
+  "name": "Quibbles",
+  "description": "A collection of personal tweaks to the GNOME Shell.",
+  "uuid": "quibbles@lastinline.gmail.com",
   "shell-version": ["48", "49"],
-  "settings-schema": "org.gnome.shell.extensions.papertweaks"
+  "settings-schema": "org.gnome.shell.extensions.quibbles"
 }

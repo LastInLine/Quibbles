@@ -1,15 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
-  <schema id="org.gnome.shell.extensions.papertweaks" path="/org/gnome/shell/extensions/papertweaks/">
+  <schema id="org.gnome.shell.extensions.quibbles" path="/org/gnome/shell/extensions/quibbles/">
 
     <!-- Top Panel Tweaks -->
-    <key name="remove-mouse-barrier" type="b">
-      <default>true</default>
-      <summary>Remove top-right corner mouse barrier</summary>
+    <key name="enable-workspace-indicator" type="b">
+      <default>false</default>
+      <summary>Enable the custom workspace indicator.</summary>
     </key>
     <key name="unclickable-activities-button" type="b">
       <default>false</default>
-      <summary>Make the stock Activities button unclickable</summary>
+      <summary>Make the stock Activities button unclickable.</summary>
+    </key>
+    <key name="remove-mouse-barrier" type="b">
+      <default>true</default>
+      <summary>Remove top-right corner mouse barrier.</summary>
     </key>
     
     <!-- Window Menu Tweak -->
@@ -34,3 +38,5 @@
 
   </schema>
 </schemalist>
+
+

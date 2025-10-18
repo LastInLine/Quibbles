@@ -3,19 +3,27 @@ import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 import { ExtensionPreferences } from "resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js";
 
-export default class PaperTweaksPreferences extends ExtensionPreferences {
+// This is the full, canonical list of all possible window menu items.
+const ALL_MENU_ITEMS = [
+    'Scratch', 'Take Screenshot', 'Hide', 'Maximize', 'Move', 'Resize',
+    'Always on Top', 'Always on Visible Workspace',
+    'Move to Workspace Left', 'Move to Workspace Right',
+    'Move to Monitor Left', 'Move to Monitor Right', 'Close'
+];
+
+export default class QuibblesPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
-        const settings = this.getSettings();
         const page = new Adw.PreferencesPage();
-        window.add(page);
+        const settings = this.getSettings();
 
         // --- Top Panel Group ---
         const panelGroup = new Adw.PreferencesGroup({ title: 'Top Panel' });
         page.add(panelGroup);
 
-        const rowBarrier = new Adw.ActionRow({ 
+        // Barrier Tweak
+        const rowBarrier = new Adw.ActionRow({
             title: 'Remove Mouse Barrier',
-            subtitle: 'NOTE: Restoring the barrier requires logging out and back in.'
+            subtitle: 'NOTE: A logout is required for changes to take full effect.'
         });
         panelGroup.add(rowBarrier);
         const toggleBarrier = new Gtk.Switch({
@@ -24,7 +32,9 @@ export default class PaperTweaksPreferences extends ExtensionPreferences {
         });
         settings.bind('remove-mouse-barrier', toggleBarrier, 'active', Gio.SettingsBindFlags.DEFAULT);
         rowBarrier.add_suffix(toggleBarrier);
+        rowBarrier.activatable_widget = toggleBarrier;
 
+        // Unclickable Activities Tweak
         const rowUnclickable = new Adw.ActionRow({ title: 'Make Activities Button Unclickable' });
         panelGroup.add(rowUnclickable);
         const toggleUnclickable = new Gtk.Switch({
@@ -33,44 +43,38 @@ export default class PaperTweaksPreferences extends ExtensionPreferences {
         });
         settings.bind('unclickable-activities-button', toggleUnclickable, 'active', Gio.SettingsBindFlags.DEFAULT);
         rowUnclickable.add_suffix(toggleUnclickable);
+        rowUnclickable.activatable_widget = toggleUnclickable;
 
         // --- Window Menu Group ---
-        const windowGroup = new Adw.PreferencesGroup({ 
-            title: 'Window Menu Items',
-            description: 'Choose which items appear in the window title bar menu.'
-        });
+        const windowGroup = new Adw.PreferencesGroup({ title: 'Window Menu Items' });
         page.add(windowGroup);
 
-        // Get the master list of ALL possible items from the schema default value.
-        // This is much more robust than a hardcoded list.
-        const allPossibleItems = settings.get_default_value('visible-items').get_strv();
-        
-        // Loop through the master list to create a row for every possible item.
-        allPossibleItems.forEach(itemName => {
+        ALL_MENU_ITEMS.forEach(itemName => {
             const row = new Adw.ActionRow({ title: itemName });
             windowGroup.add(row);
 
-            const toggle = new Gtk.Switch({ valign: Gtk.Align.CENTER });
-            row.add_suffix(toggle);
+            const toggle = new Gtk.Switch({
+                active: settings.get_strv('visible-items').includes(itemName),
+                valign: Gtk.Align.CENTER,
+            });
 
-            // Check if the current item is in the user's saved list of visible items.
-            const currentVisibleItems = settings.get_strv('visible-items');
-            toggle.set_active(currentVisibleItems.includes(itemName));
-
-            // When a toggle is flipped, update the string array in settings.
             toggle.connect('notify::active', (widget) => {
-                let visibleItems = settings.get_strv('visible-items');
-                if (widget.get_active()) {
-                    // If toggled ON, add the item if it's not already there.
-                    if (!visibleItems.includes(itemName)) {
-                        visibleItems.push(itemName);
+                const currentItems = settings.get_strv('visible-items');
+                if (widget.active) {
+                    if (!currentItems.includes(itemName)) {
+                        currentItems.push(itemName);
+                        settings.set_strv('visible-items', currentItems);
                     }
                 } else {
-                    // If toggled OFF, remove the item.
-                    visibleItems = visibleItems.filter(item => item !== itemName);
+                    const newItems = currentItems.filter(item => item !== itemName);
+                    settings.set_strv('visible-items', newItems);
                 }
-                settings.set_strv('visible-items', visibleItems);
             });
+
+            row.add_suffix(toggle);
+            row.activatable_widget = toggle;
         });
+
+        window.add(page);
     }
 }
