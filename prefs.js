@@ -20,6 +20,21 @@ export default class QuibblesPreferences extends ExtensionPreferences {
         const panelGroup = new Adw.PreferencesGroup({ title: 'Top Panel' });
         page.add(panelGroup);
 
+        // --- NEW: Workspace Indicator Tweak ---
+        const rowIndicator = new Adw.ActionRow({
+            title: 'Enable Workspace Indicator',
+            subtitle: 'Displays the current workspace name and a switcher menu in the panel.'
+        });
+        panelGroup.add(rowIndicator);
+        const toggleIndicator = new Gtk.Switch({
+            active: settings.get_boolean('enable-workspace-indicator'),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('enable-workspace-indicator', toggleIndicator, 'active', Gio.SettingsBindFlags.DEFAULT);
+        rowIndicator.add_suffix(toggleIndicator);
+        rowIndicator.activatable_widget = toggleIndicator;
+
+
         // Barrier Tweak
         const rowBarrier = new Adw.ActionRow({
             title: 'Remove Mouse Barrier',
@@ -78,3 +93,4 @@ export default class QuibblesPreferences extends ExtensionPreferences {
         window.add(page);
     }
 }
+
