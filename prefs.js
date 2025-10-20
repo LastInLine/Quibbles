@@ -74,20 +74,16 @@ class TopPanelPage {
             'enable-workspace-indicator'
         ));
 
-        // --- CORRECTED DROPDOWN LOGIC ---
         const activitiesRow = new Adw.ComboRow({
             title: _('Activities Button'),
             model: new Gtk.StringList({ strings: [_('Default'), _('Unclickable'), _('Hidden')] }),
         });
         
-        // This array maps the dropdown index (0, 1, 2) to the string value in our schema
         const stringMapping = ['default', 'unclickable', 'hidden'];
 
-        // Manually set the initial state
         const currentMode = settings.get_string('activities-button-mode');
         activitiesRow.selected = stringMapping.indexOf(currentMode);
 
-        // Manually update the setting when the user changes the dropdown
         activitiesRow.connect('notify::selected', () => {
             const newMode = stringMapping[activitiesRow.selected];
             settings.set_string('activities-button-mode', newMode);
@@ -96,7 +92,7 @@ class TopPanelPage {
         
         group.add(createSwitch(
             'Remove Mouse Barrier',
-            'NOTE: A logout is required for changes to take full effect.',
+            'A shell restart is required to restore barrier once removed.',
             settings,
             'remove-mouse-barrier'
         ));

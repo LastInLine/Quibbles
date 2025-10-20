@@ -10,7 +10,6 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
 
-// --- Workspace Indicator Code ---
 const MyIndicator = GObject.registerClass(
 class MyIndicator extends PanelMenu.Button {
     _init() {
@@ -26,6 +25,10 @@ class MyIndicator extends PanelMenu.Button {
             y_align: Clutter.ActorAlign.CENTER,
         });
         this.add_child(label);
+
+        const menuHeader = new PopupMenu.PopupMenuItem('Switch to', { reactive: false });
+        menuHeader.label.style = 'font-size: 0.8em; font-weight: bold; color: #c0c0c0; padding-top: 4px; padding-bottom: 4px;';
+        this.menu.addMenuItem(menuHeader);
         
         for (let i = 0; i < nWorkspaces; i++) {
             if (i === activeWorkspaceIndex || i === 1) { // The hardcoded hack
@@ -40,14 +43,19 @@ class MyIndicator extends PanelMenu.Button {
             });
             this.menu.addMenuItem(menuItem);
         }
-        if (this.menu.numMenuItems === 0) { 
+        if (this.menu.numMenuItems <= 1) { 
+            this.menu.removeAll(); 
             let testItem = new PopupMenu.PopupMenuItem('No hidden workspaces', { reactive: false });
             this.menu.addMenuItem(testItem);
         }
     }
 });
 
+// --- CRASH PREVENTION FIXES ---
+// 1. Store the original function outside the class so it persists across enable/disable.
 let originalBuildMenu = null;
+// 2. Create a flag that also persists across enable/disable for the same session.
+let barrierDestroyedThisSession = false;
 
 export default class QuibblesExtension extends Extension {
     constructor(metadata) {
@@ -64,8 +72,14 @@ export default class QuibblesExtension extends Extension {
     }
 
     _applyBarrierTweak() {
-        const barrier = Main.layoutManager._rightPanelBarrier;
-        if (barrier) barrier.destroy();
+        // Only run this destructive action if our persistent flag is false.
+        if (!barrierDestroyedThisSession) {
+            const barrier = Main.layoutManager._rightPanelBarrier;
+            if (barrier) {
+                barrier.destroy();
+                barrierDestroyedThisSession = true; // Set the flag for the rest of the session.
+            }
+        }
     }
 
     _updateActivitiesButton() {
@@ -178,5 +192,3 @@ export default class QuibblesExtension extends Extension {
         this._settings = null;
     }
 }
-
-
