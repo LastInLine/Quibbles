@@ -1,3 +1,12 @@
+/**
+ * Main logic for the "Quibbles" GNOME Shell Extension.
+ * * This extension provides several small tweaks to the GNOME Shell UI:
+ * - A workspace indicator in the top panel that shows the current workspace and a menu to switch to others.
+ * - Options to modify or hide the "Activities" button.
+ * - An option to remove the top-right mouse pressure barrier.
+ * - An option to customize the items in the window context menu.
+ */
+
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import GLib from 'gi://GLib';
@@ -10,39 +19,64 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
 
+// --- Workspace Indicator UI Class ---
+// This class defines the button and menu for the workspace indicator feature.
 const MyIndicator = GObject.registerClass(
 class MyIndicator extends PanelMenu.Button {
+    /**
+     * This function is called when a new instance of the indicator is created.
+     * It builds the button's label and the contents of its popup menu.
+     */
     _init() {
         super._init(0, 'My Workspace Indicator');
+        
+        // Get necessary managers and settings from GNOME Shell
         const workspaceManager = global.workspace_manager;
         const workspaceNamesSetting = new Gio.Settings({ schema: 'org.gnome.desktop.wm.preferences' });
         const workspaceNames = workspaceNamesSetting.get_strv('workspace-names');
         const activeWorkspaceIndex = workspaceManager.get_active_workspace_index();
         const nWorkspaces = workspaceManager.get_n_workspaces();
+
+        // Determine the current workspace's name to use as the button's label        
         const currentWorkspaceName = workspaceNames[activeWorkspaceIndex] || _("Workspace %d").format(activeWorkspaceIndex + 1);
+        
+        // Create the text label for the button
         let label = new St.Label({
             text: currentWorkspaceName,
             y_align: Clutter.ActorAlign.CENTER,
         });
         this.add_child(label);
 
+        // --- Build the Popup Menu ---
+
+        // Create a non-clickable header for the menu with inline styling
         const menuHeader = new PopupMenu.PopupMenuItem('Switch to', { reactive: false });
         menuHeader.label.style = 'font-size: 0.8em; font-weight: bold; color: #c0c0c0; padding-top: 4px; padding-bottom: 4px;';
         this.menu.addMenuItem(menuHeader);
-        
+
+        // Loop through all available workspaces        
         for (let i = 0; i < nWorkspaces; i++) {
-            if (i === activeWorkspaceIndex || i === 1) { // The hardcoded hack
+            // This is the hardcoded hack to hide specific workspaces from the menu
+            if (i === activeWorkspaceIndex || i === 1) {
                 continue;
             }
+            
             const workspace = workspaceManager.get_workspace_by_index(i);
-            if (!workspace) continue;
+            if (!workspace) continue; // Safety check
+            
+            // Get the workspace name or create a default one
             let name = workspaceNames[i] || _("Workspace %d").format(i + 1);
             let menuItem = new PopupMenu.PopupMenuItem(name);
+            
+            // When a menu item is clicked, activate the corresponding workspace
             menuItem.connect('activate', () => {
                 workspace.activate(global.get_current_time());
             });
             this.menu.addMenuItem(menuItem);
         }
+        
+        // If the only item in the menu is our header, it means there are no other workspaces to show.
+        // In that case, we clear the menu and show a placeholder message.
         if (this.menu.numMenuItems <= 1) { 
             this.menu.removeAll(); 
             let testItem = new PopupMenu.PopupMenuItem('No hidden workspaces', { reactive: false });
@@ -51,15 +85,21 @@ class MyIndicator extends PanelMenu.Button {
     }
 });
 
-// --- CRASH PREVENTION FIXES ---
-// 1. Store the original function outside the class so it persists across enable/disable.
+// --- CRASH PREVENTION GLOBALS ---
+// These variables are defined outside the main class so they persist
+// across multiple enable/disable cycles within the same login session.
+
+// Stores the original, un-patched version of the window menu function.
 let originalBuildMenu = null;
-// 2. Create a flag that also persists across enable/disable for the same session.
+// A flag to ensure we only try to destroy the panel barrier once per session.
 let barrierDestroyedThisSession = false;
 
+// --- Main Extension Class ---
 export default class QuibblesExtension extends Extension {
     constructor(metadata) {
         super(metadata);
+        
+        // Initialize all properties to null. They will be set in enable().
         this._settings = null;
         this._settingsConnections = [];
         this._timeoutId = null;
@@ -71,6 +111,10 @@ export default class QuibblesExtension extends Extension {
         this._workspaceChangedId = null;
     }
 
+    /**
+     * Applies the barrier tweak. This is a destructive, one-way action
+     * that can only be safely run once per session.
+     */
     _applyBarrierTweak() {
         // Only run this destructive action if our persistent flag is false.
         if (!barrierDestroyedThisSession) {
@@ -82,6 +126,9 @@ export default class QuibblesExtension extends Extension {
         }
     }
 
+    /**
+     * Updates the state of the Activities button based on the current setting.
+     */
     _updateActivitiesButton() {
         if (!this._activitiesButton) return;
         const mode = this._settings.get_string('activities-button-mode');
@@ -100,29 +147,42 @@ export default class QuibblesExtension extends Extension {
         }
     }
 
+    /**
+     * Enables or disables the workspace indicator feature based on its setting.
+     */
     _updateWorkspaceIndicator() {
         if (this._settings.get_boolean('enable-workspace-indicator')) {
+            // If the feature is enabled but the indicator doesn't exist yet, create it.
             if (!this._indicator) {
                 this._indicator = new MyIndicator();
                 Main.panel.addToStatusArea(this.uuid, this._indicator, 1, 'left');
+                // Watch for workspace changes to rebuild the indicator with the correct label.
                 this._workspaceChangedId = global.workspace_manager.connect(
                     'active-workspace-changed',
                     this._rebuildIndicator.bind(this)
                 );
             }
         } else {
+            // If the feature is disabled and the indicator exists, destroy it.
             if (this._indicator) {
                 this._destroyIndicator();
             }
         }
     }
     
+    /**
+     * A helper function to destroy and recreate the workspace indicator.
+     * This is called whenever the active workspace changes to update the label.
+     */
     _rebuildIndicator() {
         this._indicator?.destroy();
         this._indicator = new MyIndicator();
         Main.panel.addToStatusArea(this.uuid, this._indicator, 1, 'left');
     }
 
+    /**
+     * A helper function to cleanly destroy the workspace indicator and its signal listener.
+     */
     _destroyIndicator() {
         if (this._workspaceChangedId) {
             global.workspace_manager.disconnect(this._workspaceChangedId);
@@ -132,28 +192,38 @@ export default class QuibblesExtension extends Extension {
         this._indicator = null;
     }
 
-
+    /**
+     * The main entry point for the extension. Called when the extension is enabled.
+     */
     enable() {
         this._settings = this.getSettings();
         
+        // Find the Activities button and save its original state so we can restore it later.
         this._activitiesButton = Main.panel.statusArea['activities'];
         if (this._activitiesButton) {
             this._originalActivitiesState.reactive = this._activitiesButton.reactive;
             this._originalActivitiesState.visible = this._activitiesButton.visible;
         }
         
+        // Connect to changes in our settings so the UI can update automatically.
         this._settingsConnections.push(
             this._settings.connect('changed::activities-button-mode', () => this._updateActivitiesButton()),
             this._settings.connect('changed::enable-workspace-indicator', () => this._updateWorkspaceIndicator())
         );
+        
+        // Apply all settings on startup.
         this._updateActivitiesButton();
         this._updateWorkspaceIndicator();
         
+        // This is the "monkey-patch" for the window menu. We use a defensive check
+        // to ensure we only apply it once per session to avoid crashes.
         if (originalBuildMenu === null) {
             originalBuildMenu = WindowMenu.prototype._buildMenu;
             const settings = this._settings;
             WindowMenu.prototype._buildMenu = function(...args) {
+                // First, run the original function.
                 originalBuildMenu.apply(this, args);
+                // Then, apply our modification to hide/show items.
                 const visibleItems = settings.get_strv('visible-items');
                 const visibleSet = new Set(visibleItems);
                 this._getMenuItems().forEach(item => {
@@ -162,6 +232,7 @@ export default class QuibblesExtension extends Extension {
             };
         }
 
+        // Apply the barrier tweak after a short delay to ensure the panel is fully loaded.
         this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1500, () => {
             if (this._settings.get_boolean('remove-mouse-barrier')) {
                 this._applyBarrierTweak();
@@ -171,23 +242,32 @@ export default class QuibblesExtension extends Extension {
         });
     }
 
+
+    /**
+     * The main exit point for the extension. Called when the extension is disabled.
+     */
     disable() {
+        // Clean up all our UI elements and patches.
         this._destroyIndicator();
         
+        // Restore the original window menu function.
         if (originalBuildMenu) {
             WindowMenu.prototype._buildMenu = originalBuildMenu;
             originalBuildMenu = null;
         }
 
+        // Restore the Activities button to its original state.
         if (this._activitiesButton) {
             this._activitiesButton.reactive = this._originalActivitiesState.reactive;
             this._activitiesButton.visible = this._originalActivitiesState.visible;
         }
         
+        // Clean up timers and settings listeners.
         if (this._timeoutId) GLib.source_remove(this._timeoutId);
         this._settingsConnections.forEach(c => this._settings.disconnect(c));
         this._settingsConnections = [];
         
+        // Clean up timers and settings listeners.
         this._settings?.run_dispose();
         this._settings = null;
     }

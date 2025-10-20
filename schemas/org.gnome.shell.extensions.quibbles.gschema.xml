@@ -2,13 +2,13 @@
 <schemalist>
   <schema id="org.gnome.shell.extensions.quibbles" path="/org/gnome/shell/extensions/quibbles/">
 
-    <!-- Top Panel Tweaks -->
+    <!-- Workspace indicator -->
     <key name="enable-workspace-indicator" type="b">
       <default>false</default>
       <summary>Enable the custom workspace indicator.</summary>
     </key>
     
-    <!-- New setting for the Activities Button dropdown -->
+    <!-- Activities Button dropdown -->
     <key name="activities-button-mode" type="s">
       <default>'default'</default>
       <summary>How to handle the Activities Button.</summary>
@@ -19,6 +19,7 @@
       </choices>
     </key>
 
+    <!-- Mouse barrier remover -->
     <key name="remove-mouse-barrier" type="b">
       <default>true</default>
       <summary>Remove top-right corner mouse barrier.</summary>
