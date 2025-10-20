@@ -7,10 +7,18 @@
       <default>false</default>
       <summary>Enable the custom workspace indicator.</summary>
     </key>
-    <key name="unclickable-activities-button" type="b">
-      <default>false</default>
-      <summary>Make the stock Activities button unclickable.</summary>
+    
+    <!-- New setting for the Activities Button dropdown -->
+    <key name="activities-button-mode" type="s">
+      <default>'default'</default>
+      <summary>How to handle the Activities Button.</summary>
+      <choices>
+        <choice value='default'/>
+        <choice value='unclickable'/>
+        <choice value='hidden'/>
+      </choices>
     </key>
+
     <key name="remove-mouse-barrier" type="b">
       <default>true</default>
       <summary>Remove top-right corner mouse barrier.</summary>
@@ -38,4 +46,5 @@
 
   </schema>
 </schemalist>
+
 

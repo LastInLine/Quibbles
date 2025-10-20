@@ -1,9 +1,8 @@
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
-import { ExtensionPreferences } from "resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js";
+import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-// This is the full, canonical list of all possible window menu items.
 const ALL_MENU_ITEMS = [
     'Scratch', 'Take Screenshot', 'Hide', 'Maximize', 'Move', 'Resize',
     'Always on Top', 'Always on Visible Workspace',
@@ -11,86 +10,107 @@ const ALL_MENU_ITEMS = [
     'Move to Monitor Left', 'Move to Monitor Right', 'Close'
 ];
 
-export default class QuibblesPreferences extends ExtensionPreferences {
-    fillPreferencesWindow(window) {
-        const page = new Adw.PreferencesPage();
-        const settings = this.getSettings();
+function createSwitch(title, subtitle, settings, settingName) {
+    const row = new Adw.ActionRow({ title, subtitle });
+    const toggle = new Gtk.Switch({
+        active: settings.get_boolean(settingName),
+        valign: Gtk.Align.CENTER,
+    });
+    settings.bind(settingName, toggle, 'active', Gio.SettingsBindFlags.DEFAULT);
+    row.add_suffix(toggle);
+    row.activatable_widget = toggle;
+    return row;
+}
 
-        // --- Top Panel Group ---
-        const panelGroup = new Adw.PreferencesGroup({ title: 'Top Panel' });
-        page.add(panelGroup);
-
-        // --- NEW: Workspace Indicator Tweak ---
-        const rowIndicator = new Adw.ActionRow({
-            title: 'Enable Workspace Indicator',
-            subtitle: 'Displays the current workspace name and a switcher menu in the panel.'
+class WindowMenuPage {
+    constructor(settings) {
+        this.page = new Adw.PreferencesPage({
+            title: _('Window Menu'),
+            iconName: 'open-menu-symbolic'
         });
-        panelGroup.add(rowIndicator);
-        const toggleIndicator = new Gtk.Switch({
-            active: settings.get_boolean('enable-workspace-indicator'),
-            valign: Gtk.Align.CENTER,
+        const group = new Adw.PreferencesGroup({
+            title: _('Menu options'),
+            description: _('Controls the visibility of items in the window title bar context menu.'),
         });
-        settings.bind('enable-workspace-indicator', toggleIndicator, 'active', Gio.SettingsBindFlags.DEFAULT);
-        rowIndicator.add_suffix(toggleIndicator);
-        rowIndicator.activatable_widget = toggleIndicator;
-
-
-        // Barrier Tweak
-        const rowBarrier = new Adw.ActionRow({
-            title: 'Remove Mouse Barrier',
-            subtitle: 'NOTE: A logout is required for changes to take full effect.'
-        });
-        panelGroup.add(rowBarrier);
-        const toggleBarrier = new Gtk.Switch({
-            active: settings.get_boolean('remove-mouse-barrier'),
-            valign: Gtk.Align.CENTER,
-        });
-        settings.bind('remove-mouse-barrier', toggleBarrier, 'active', Gio.SettingsBindFlags.DEFAULT);
-        rowBarrier.add_suffix(toggleBarrier);
-        rowBarrier.activatable_widget = toggleBarrier;
-
-        // Unclickable Activities Tweak
-        const rowUnclickable = new Adw.ActionRow({ title: 'Make Activities Button Unclickable' });
-        panelGroup.add(rowUnclickable);
-        const toggleUnclickable = new Gtk.Switch({
-            active: settings.get_boolean('unclickable-activities-button'),
-            valign: Gtk.Align.CENTER,
-        });
-        settings.bind('unclickable-activities-button', toggleUnclickable, 'active', Gio.SettingsBindFlags.DEFAULT);
-        rowUnclickable.add_suffix(toggleUnclickable);
-        rowUnclickable.activatable_widget = toggleUnclickable;
-
-        // --- Window Menu Group ---
-        const windowGroup = new Adw.PreferencesGroup({ title: 'Window Menu Items' });
-        page.add(windowGroup);
-
+        this.page.add(group);
         ALL_MENU_ITEMS.forEach(itemName => {
             const row = new Adw.ActionRow({ title: itemName });
-            windowGroup.add(row);
-
+            group.add(row);
             const toggle = new Gtk.Switch({
                 active: settings.get_strv('visible-items').includes(itemName),
                 valign: Gtk.Align.CENTER,
             });
-
             toggle.connect('notify::active', (widget) => {
-                const currentItems = settings.get_strv('visible-items');
+                let currentItems = settings.get_strv('visible-items');
                 if (widget.active) {
-                    if (!currentItems.includes(itemName)) {
-                        currentItems.push(itemName);
-                        settings.set_strv('visible-items', currentItems);
-                    }
+                    currentItems.push(itemName);
                 } else {
-                    const newItems = currentItems.filter(item => item !== itemName);
-                    settings.set_strv('visible-items', newItems);
+                    currentItems = currentItems.filter(item => item !== itemName);
                 }
+                settings.set_strv('visible-items', [...new Set(currentItems)]);
             });
-
             row.add_suffix(toggle);
             row.activatable_widget = toggle;
         });
-
-        window.add(page);
     }
 }
+
+class TopPanelPage {
+    constructor(settings) {
+        this.page = new Adw.PreferencesPage({
+            title: _('Top Panel'),
+            iconName: 'go-top-symbolic'
+        });
+        
+        const group = new Adw.PreferencesGroup({
+            title: _('Top panel modifications'),
+        });
+        this.page.add(group);
+
+        group.add(createSwitch(
+            'Enable Workspace Indicator',
+            'Displays the current workspace name and a switcher menu.',
+            settings,
+            'enable-workspace-indicator'
+        ));
+
+        // --- CORRECTED DROPDOWN LOGIC ---
+        const activitiesRow = new Adw.ComboRow({
+            title: _('Activities Button'),
+            model: new Gtk.StringList({ strings: [_('Default'), _('Unclickable'), _('Hidden')] }),
+        });
+        
+        // This array maps the dropdown index (0, 1, 2) to the string value in our schema
+        const stringMapping = ['default', 'unclickable', 'hidden'];
+
+        // Manually set the initial state
+        const currentMode = settings.get_string('activities-button-mode');
+        activitiesRow.selected = stringMapping.indexOf(currentMode);
+
+        // Manually update the setting when the user changes the dropdown
+        activitiesRow.connect('notify::selected', () => {
+            const newMode = stringMapping[activitiesRow.selected];
+            settings.set_string('activities-button-mode', newMode);
+        });
+        group.add(activitiesRow);
+        
+        group.add(createSwitch(
+            'Remove Mouse Barrier',
+            'NOTE: A logout is required for changes to take full effect.',
+            settings,
+            'remove-mouse-barrier'
+        ));
+    }
+}
+
+export default class QuibblesPreferences extends ExtensionPreferences {
+    fillPreferencesWindow(window) {
+        const settings = this.getSettings();
+        const topPanelPage = new TopPanelPage(settings);
+        window.add(topPanelPage.page);
+        const windowMenuPage = new WindowMenuPage(settings);
+        window.add(windowMenuPage.page);
+    }
+}
+
 
