@@ -1,13 +1,10 @@
 /**
  * Main logic for the "Quibbles" GNOME Shell Extension.
- * * This extension provides several small tweaks to the GNOME Shell UI:
- * - A workspace indicator in the top panel that shows the current workspace and a menu to switch to others.
- * - Options to modify or hide the "Activities" button.
- * - An option to remove the top-right mouse pressure barrier.
- * - An option to customize the items in the window context menu.
+ * This file contains the primary classes and functions that are loaded
+ * by GNOME Shell when the extension is enabled.
  */
 
-import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
+import { Extension, gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import GLib from 'gi://GLib';
 import { WindowMenu } from 'resource:///org/gnome/shell/ui/windowMenu.js';
@@ -17,7 +14,6 @@ import Gio from 'gi://Gio';
 import Clutter from 'gi://Clutter';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
-import {gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 // --- Workspace Indicator UI Class ---
 // This class defines the button and menu for the workspace indicator feature.
@@ -50,23 +46,19 @@ class MyIndicator extends PanelMenu.Button {
 
         // --- Build the Popup Menu ---
 
-        // Create a non-clickable header for the menu with inline styling
         const menuHeader = new PopupMenu.PopupMenuItem('Switch to', { reactive: false });
         menuHeader.style = 'padding-top: 0px; padding-bottom: 6px; min-height: 0;';
         menuHeader.label.style = 'font-size: 0.8em; font-weight: bold; color: #c0c0c0;';
         this.menu.addMenuItem(menuHeader);
 
-        // Loop through all available workspaces        
+        // Loop through all available workspaces to build the menu
         for (let i = 0; i < nWorkspaces; i++) {
-            // This is the hardcoded hack to hide specific workspaces from the menu
-            if (i === activeWorkspaceIndex || i === 1) {
-                continue;
-            }
+            // Hardcoded choices to hide specific workspaces from the menu
+            if (i === activeWorkspaceIndex || i === 1) continue;
             
             const workspace = workspaceManager.get_workspace_by_index(i);
             if (!workspace) continue; // Safety check
             
-            // Get the workspace name or create a default one
             let name = workspaceNames[i] || _("Workspace %d").format(i + 1);
             let menuItem = new PopupMenu.PopupMenuItem(name);
             
@@ -77,8 +69,7 @@ class MyIndicator extends PanelMenu.Button {
             this.menu.addMenuItem(menuItem);
         }
         
-        // If the only item in the menu is our header, it means there are no other workspaces to show.
-        // In that case, we clear the menu and show a placeholder message.
+        // If there are no other workspaces to show, display a placeholder.
         if (this.menu.numMenuItems <= 1) { 
             this.menu.removeAll(); 
             let testItem = new PopupMenu.PopupMenuItem('No hidden workspaces', { reactive: false });
@@ -89,42 +80,53 @@ class MyIndicator extends PanelMenu.Button {
 
 // --- CRASH PREVENTION GLOBALS ---
 // These variables are defined outside the main class so they persist
-// across multiple enable/disable cycles within the same login session.
+// across multiple enable/disable cycles within the same login session
+// (e.g., when the screen locks).
 
 // Stores the original, un-patched version of the window menu function.
 let originalBuildMenu = null;
-// A flag to ensure we only try to destroy the panel barrier once per session.
+// A session-wide flag to ensure we only try to destroy the panel barrier once.
 let barrierDestroyedThisSession = false;
 
 // --- Main Extension Class ---
 export default class QuibblesExtension extends Extension {
+    /**
+     * The constructor is called once when the extension is loaded.
+     * It initializes all the properties that will be used by the extension.
+     */
     constructor(metadata) {
         super(metadata);
         
-        // Initialize all properties to null. They will be set in enable().
         this._settings = null;
         this._settingsConnections = [];
         this._timeoutId = null;
-        
         this._activitiesButton = null;
         this._originalActivitiesState = { reactive: null, visible: null };
-
         this._indicator = null;
         this._workspaceChangedId = null;
     }
 
     /**
      * Applies the barrier tweak. This is a destructive, one-way action
-     * that can only be safely run once per session.
+     * that can only be safely run once per session to prevent shell crashes.
      */
     _applyBarrierTweak() {
-        // Only run this destructive action if our persistent flag is false.
         if (!barrierDestroyedThisSession) {
             const barrier = Main.layoutManager._rightPanelBarrier;
             if (barrier) {
                 barrier.destroy();
-                barrierDestroyedThisSession = true; // Set the flag for the rest of the session.
+                barrierDestroyedThisSession = true; // Set the safety flag for this session.
             }
+        }
+    }
+    
+    /**
+     * A gatekeeper function that checks if the barrier tweak should be applied.
+     * It's called on startup and whenever the setting is changed.
+     */
+    _checkBarrierTweak() {
+        if (this._settings.get_boolean('remove-mouse-barrier')) {
+            this._applyBarrierTweak();
         }
     }
 
@@ -142,7 +144,7 @@ export default class QuibblesExtension extends Extension {
             case 'hidden':
                 this._activitiesButton.visible = false;
                 break;
-            default:
+            default: // 'default'
                 this._activitiesButton.visible = true;
                 this._activitiesButton.reactive = true;
                 break;
@@ -154,18 +156,15 @@ export default class QuibblesExtension extends Extension {
      */
     _updateWorkspaceIndicator() {
         if (this._settings.get_boolean('enable-workspace-indicator')) {
-            // If the feature is enabled but the indicator doesn't exist yet, create it.
             if (!this._indicator) {
                 this._indicator = new MyIndicator();
                 Main.panel.addToStatusArea('quibbles-workspace-indicator', this._indicator, 2, 'left');
-                // Watch for workspace changes to rebuild the indicator with the correct label.
                 this._workspaceChangedId = global.workspace_manager.connect(
                     'active-workspace-changed',
                     this._rebuildIndicator.bind(this)
                 );
             }
         } else {
-            // If the feature is disabled and the indicator exists, destroy it.
             if (this._indicator) {
                 this._destroyIndicator();
             }
@@ -173,8 +172,8 @@ export default class QuibblesExtension extends Extension {
     }
     
     /**
-     * A helper function to destroy and recreate the workspace indicator.
-     * This is called whenever the active workspace changes to update the label.
+     * A helper to destroy and recreate the workspace indicator, called when the
+     * active workspace changes to keep the label updated.
      */
     _rebuildIndicator() {
         this._indicator?.destroy();
@@ -183,7 +182,7 @@ export default class QuibblesExtension extends Extension {
     }
 
     /**
-     * A helper function to cleanly destroy the workspace indicator and its signal listener.
+     * A helper to cleanly destroy the workspace indicator and its signal listener.
      */
     _destroyIndicator() {
         if (this._workspaceChangedId) {
@@ -195,12 +194,13 @@ export default class QuibblesExtension extends Extension {
     }
 
     /**
-     * The main entry point for the extension. Called when the extension is enabled.
+     * The main entry point. Called when the extension is enabled by the user,
+     * at login, or after the lock screen.
      */
     enable() {
         this._settings = this.getSettings();
         
-        // Find the Activities button and save its original state so we can restore it later.
+        // Find the Activities button and save its original state for restoration on disable.
         this._activitiesButton = Main.panel.statusArea['activities'];
         if (this._activitiesButton) {
             this._originalActivitiesState.reactive = this._activitiesButton.reactive;
@@ -210,22 +210,23 @@ export default class QuibblesExtension extends Extension {
         // Connect to changes in our settings so the UI can update automatically.
         this._settingsConnections.push(
             this._settings.connect('changed::activities-button-mode', () => this._updateActivitiesButton()),
-            this._settings.connect('changed::enable-workspace-indicator', () => this._updateWorkspaceIndicator())
+            this._settings.connect('changed::enable-workspace-indicator', () => this._updateWorkspaceIndicator()),
+            this._settings.connect('changed::remove-mouse-barrier', () => this._checkBarrierTweak())
         );
         
         // Apply all settings on startup.
         this._updateActivitiesButton();
         this._updateWorkspaceIndicator();
         
-        // This is the "monkey-patch" for the window menu. We use a defensive check
-        // to ensure we only apply it once per session to avoid crashes.
+        // "Monkey-patch" the window menu to customize its items.
+        // This is done only once per session to prevent errors.
         if (originalBuildMenu === null) {
             originalBuildMenu = WindowMenu.prototype._buildMenu;
             const settings = this._settings;
             WindowMenu.prototype._buildMenu = function(...args) {
-                // First, run the original function.
+                // First, run the original function to build the menu.
                 originalBuildMenu.apply(this, args);
-                // Then, apply our modification to hide/show items.
+                // Then, apply our modification to hide/show items based on settings.
                 const visibleItems = settings.get_strv('visible-items');
                 const visibleSet = new Set(visibleItems);
                 this._getMenuItems().forEach(item => {
@@ -234,25 +235,30 @@ export default class QuibblesExtension extends Extension {
             };
         }
 
-        // Apply the barrier tweak after a short delay to ensure the panel is fully loaded.
+        // Apply the barrier tweak after a short delay. This is a workaround
+        // for a race condition where the extension enables before the panel
+        // barrier has been created by the shell.
         this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1500, () => {
-            if (this._settings.get_boolean('remove-mouse-barrier')) {
-                this._applyBarrierTweak();
-            }
-            this._timeoutId = null;
+            this._checkBarrierTweak();
+            this._timeoutId = null; // Clear the timer ID
             return GLib.SOURCE_REMOVE;
         });
     }
 
-
     /**
-     * The main exit point for the extension. Called when the extension is disabled.
+     * The main exit point. Called when the extension is disabled by the user
+     * or right before the screen locks.
      */
     disable() {
-        // Clean up all our UI elements and patches.
+        // This is the key to the lock screen fix. Because the shell reloads
+        // extensions after unlock, this `disable` function is called right
+        // before the lock screen appears. By resetting the safety flag here,
+        // we re-arm the barrier removal for when `enable` is called on unlock.
+        barrierDestroyedThisSession = false;
+        
         this._destroyIndicator();
         
-        // Restore the original window menu function.
+        // Restore the original window menu function if it was patched.
         if (originalBuildMenu) {
             WindowMenu.prototype._buildMenu = originalBuildMenu;
             originalBuildMenu = null;
@@ -264,13 +270,15 @@ export default class QuibblesExtension extends Extension {
             this._activitiesButton.visible = this._originalActivitiesState.visible;
         }
         
-        // Clean up timers and settings listeners.
+        // Clean up any pending timers and all settings signal listeners.
         if (this._timeoutId) GLib.source_remove(this._timeoutId);
         this._settingsConnections.forEach(c => this._settings.disconnect(c));
         this._settingsConnections = [];
         
-        // Clean up timers and settings listeners.
+        // Properly dispose of the settings object to prevent memory leaks and crashes.
         this._settings?.run_dispose();
         this._settings = null;
     }
 }
+
+
