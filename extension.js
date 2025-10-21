@@ -28,7 +28,8 @@ class MyIndicator extends PanelMenu.Button {
      * It builds the button's label and the contents of its popup menu.
      */
     _init() {
-        super._init(0, 'My Workspace Indicator');
+        // 0.5 centers the menu under the button.
+        super._init(0.5, 'My Workspace Indicator');
         
         // Get necessary managers and settings from GNOME Shell
         const workspaceManager = global.workspace_manager;
@@ -51,7 +52,8 @@ class MyIndicator extends PanelMenu.Button {
 
         // Create a non-clickable header for the menu with inline styling
         const menuHeader = new PopupMenu.PopupMenuItem('Switch to', { reactive: false });
-        menuHeader.label.style = 'font-size: 0.8em; font-weight: bold; color: #c0c0c0; padding-top: 4px; padding-bottom: 4px;';
+        menuHeader.style = 'padding-top: 0px; padding-bottom: 6px; min-height: 0;';
+        menuHeader.label.style = 'font-size: 0.8em; font-weight: bold; color: #c0c0c0;';
         this.menu.addMenuItem(menuHeader);
 
         // Loop through all available workspaces        
@@ -155,7 +157,7 @@ export default class QuibblesExtension extends Extension {
             // If the feature is enabled but the indicator doesn't exist yet, create it.
             if (!this._indicator) {
                 this._indicator = new MyIndicator();
-                Main.panel.addToStatusArea(this.uuid, this._indicator, 1, 'left');
+                Main.panel.addToStatusArea('quibbles-workspace-indicator', this._indicator, 2, 'left');
                 // Watch for workspace changes to rebuild the indicator with the correct label.
                 this._workspaceChangedId = global.workspace_manager.connect(
                     'active-workspace-changed',
@@ -177,7 +179,7 @@ export default class QuibblesExtension extends Extension {
     _rebuildIndicator() {
         this._indicator?.destroy();
         this._indicator = new MyIndicator();
-        Main.panel.addToStatusArea(this.uuid, this._indicator, 1, 'left');
+        Main.panel.addToStatusArea('quibbles-workspace-indicator', this._indicator, 2, 'left');
     }
 
     /**
