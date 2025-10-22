@@ -21,10 +21,15 @@ class MyIndicator extends PanelMenu.Button {
     /**
      * This function is called when a new instance of the indicator is created.
      * It builds the button's label and the contents of its popup menu.
+     *
+     * @param {Gio.Settings} settings - The extension's settings object.
      */
-    _init() {
+    _init(settings) {
         // 0.5 centers the menu under the button.
         super._init(0.5, 'My Workspace Indicator');
+
+        // Store the settings object for later use
+        this._settings = settings;
 
         // Get necessary managers and settings from GNOME Shell
         const workspaceManager = global.workspace_manager;
@@ -50,10 +55,29 @@ class MyIndicator extends PanelMenu.Button {
         menuHeader.label.style = 'font-size: 0.8em; font-weight: bold; color: #c0c0c0;';
         this.menu.addMenuItem(menuHeader);
 
+        // --- NEW: Get and parse the list of indices to hide ---
+        const indicesToHideStr = this._settings.get_string('hide-workspace-indices');
+        // Turn the string "1, 2" into a Set {1, 2} for easy lookup
+        const indicesToHide = new Set(
+            indicesToHideStr.split(',') // ["1", " 2"]
+                .map(s => parseInt(s.trim())) // [1, 2]
+                .filter(n => !isNaN(n)) // Filter out any bad text like 'a' or empty strings
+        );
+        // --- END NEW ---
+
         // Loop through all available workspaces to build the menu
         for (let i = 0; i < nWorkspaces; i++) {
-            // Hardcoded choices to hide specific workspaces from the menu
-            if (i === activeWorkspaceIndex || i === 1) continue;
+            
+            // --- UPDATED LOGIC ---
+            const isActive = (i === activeWorkspaceIndex);
+            const isManuallyHidden = indicesToHide.has(i);
+
+            // Hide the workspace if it's the active one OR
+            // if it's in our manual "hide" list.
+            if (isActive || isManuallyHidden) {
+                continue;
+            }
+            // --- END UPDATED LOGIC ---
 
             const workspace = workspaceManager.get_workspace_by_index(i);
             if (!workspace) continue; // Safety check
@@ -89,16 +113,26 @@ export class WorkspaceIndicatorFeature {
         this._settingsConnection = null;
         this._indicator = null;
         this._workspaceChangedId = null;
+
+        // NEW: Connection for our manual hide setting
+        this._hideSettingId = null;
     }
 
     /**
      * Enables the feature, connects to settings, and applies the current setting.
      */
     enable() {
-        // Connect to the setting.
+        // Connect to the master on/off switch
         this._settingsConnection = this._settings.connect(
             'changed::enable-workspace-indicator',
             () => this._updateWorkspaceIndicator()
+        );
+
+        // NEW: Connect to the manual hide list setting.
+        // If it changes, we need to force the indicator to rebuild.
+        this._hideSettingId = this._settings.connect(
+            'changed::hide-workspace-indices',
+            () => this._rebuildIndicator()
         );
 
         // Apply the setting immediately on startup.
@@ -109,10 +143,14 @@ export class WorkspaceIndicatorFeature {
      * Disables the feature, cleans up listeners, and destroys the indicator.
      */
     disable() {
-        // Disconnect our settings listener.
+        // Disconnect our settings listeners
         if (this._settingsConnection) {
             this._settings.disconnect(this._settingsConnection);
             this._settingsConnection = null;
+        }
+        if (this._hideSettingId) {
+            this._settings.disconnect(this._hideSettingId);
+            this._hideSettingId = null;
         }
 
         // Cleanly destroy the indicator and its listeners.
@@ -126,7 +164,8 @@ export class WorkspaceIndicatorFeature {
         if (this._settings.get_boolean('enable-workspace-indicator')) {
             // If the feature is enabled but the indicator doesn't exist yet, create it.
             if (!this._indicator) {
-                this._indicator = new MyIndicator();
+                // Pass settings to the indicator
+                this._indicator = new MyIndicator(this._settings);
                 Main.panel.addToStatusArea('quibbles-workspace-indicator', this._indicator, 2, 'left');
 
                 // Watch for workspace changes to rebuild the indicator with the correct label.
@@ -145,11 +184,15 @@ export class WorkspaceIndicatorFeature {
 
     /**
      * A helper to destroy and recreate the workspace indicator, called when the
-     * active workspace changes to keep the label updated.
+     * active workspace changes OR when our hide list changes.
      */
     _rebuildIndicator() {
+        // Don't rebuild if the indicator isn't enabled
+        if (!this._indicator) return;
+
         this._indicator?.destroy();
-        this._indicator = new MyIndicator();
+        // Pass settings to the indicator
+        this._indicator = new MyIndicator(this._settings);
         Main.panel.addToStatusArea('quibbles-workspace-indicator', this._indicator, 2, 'left');
     }
 
@@ -165,4 +208,5 @@ export class WorkspaceIndicatorFeature {
         this._indicator = null;
     }
 }
+
 

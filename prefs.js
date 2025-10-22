@@ -76,20 +76,55 @@ class TopPanelPage {
             iconName: 'go-top-symbolic'
         });
         
-        const group = new Adw.PreferencesGroup({
-            title: _('Top panel modifications'),
+        // --- GROUP 1: Workspace Indicator ---
+        const wsGroup = new Adw.PreferencesGroup({
+            title: _('Custom workspace indicator and switcher'),
         });
-        this.page.add(group);
+        this.page.add(wsGroup);
 
-        group.add(createSwitch(
+        wsGroup.add(createSwitch(
             'Enable Workspace Indicator',
             'Displays the current workspace name and a switcher menu.',
             settings,
             'enable-workspace-indicator'
         ));
 
-        const activitiesRow = new Adw.ComboRow({
+        // Use an ActionRow to get a subtitle
+        const hideIndicesRow = new Adw.ActionRow({
+            title: _('Hide Workspace Indices'),
+            subtitle: _('Comma-separated, zero-indexed (e.g., 1, 2)'),
+        });
+        
+        // Create a text entry widget
+        const entry = new Gtk.Entry({
+            text: settings.get_string('hide-workspace-indices'),
+            valign: Gtk.Align.CENTER,
+            hexpand: true, // Make sure it fills the available space
+        });
+        
+        // Bind the setting to the entry's text property
+        settings.bind(
+            'hide-workspace-indices', 
+            entry, 
+            'text', 
+            Gio.SettingsBindFlags.DEFAULT
+        );
+
+        // Add the entry as a suffix widget
+        hideIndicesRow.add_suffix(entry);
+        // Make the entry box the "activatable" widget for the row
+        hideIndicesRow.activatable_widget = entry;
+        
+        wsGroup.add(hideIndicesRow);
+
+        // --- GROUP 2: Activities Button ---
+        const activitiesGroup = new Adw.PreferencesGroup({
             title: _('Activities Button'),
+        });
+        this.page.add(activitiesGroup);
+
+        const activitiesRow = new Adw.ComboRow({
+            title: _('Activities Button Behavior'),
             model: new Gtk.StringList({ strings: [_('Default'), _('Unclickable'), _('Hidden')] }),
         });
         
@@ -102,10 +137,16 @@ class TopPanelPage {
             const newMode = stringMapping[activitiesRow.selected];
             settings.set_string('activities-button-mode', newMode);
         });
-        group.add(activitiesRow);
+        activitiesGroup.add(activitiesRow);
         
-        group.add(createSwitch(
-            'Remove Mouse Barrier',
+        // --- GROUP 3: Mouse Barrier ---
+        const barrierGroup = new Adw.PreferencesGroup({
+            title: _('Mouse Barrier'),
+        });
+        this.page.add(barrierGroup);
+
+        barrierGroup.add(createSwitch(
+            'Remove Top-Right Mouse Barrier',
             'A shell restart is required to restore barrier once removed.',
             settings,
             'remove-mouse-barrier'
@@ -128,7 +169,7 @@ class AboutPage {
         });
         this.page.add(group);
 
-        // Prefer 'version-name' in metadata.json for display & fall back to 'version' if it doesn't exist
+        // Prefer 'version-name' for display, but fall back to 'version' if it doesn't exist.
         const displayVersion = extension.metadata['version-name'] || extension.metadata.version?.toString() || 'N/A';
 
         const versionRow = new Adw.ActionRow({
@@ -137,13 +178,13 @@ class AboutPage {
         });
         group.add(versionRow);
         
-        // Description pulled from metadata.json
         const descriptionRow = new Adw.ActionRow({
             title: _('Description'),
             subtitle: extension.metadata.description,
         });
         group.add(descriptionRow);
 
+        // --- SIMPLIFIED URL LINK ---
         // Only add the link row if a URL is actually defined in metadata.json
         if (extension.metadata.url) {
             // Make the ActionRow itself activatable

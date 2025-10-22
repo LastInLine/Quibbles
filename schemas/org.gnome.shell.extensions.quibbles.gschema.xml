@@ -3,10 +3,18 @@
   <schema id="org.gnome.shell.extensions.quibbles" path="/org/gnome/shell/extensions/quibbles/">
 
     <!-- Workspace indicator -->
-    <key name="enable-workspace-indicator" type="b">
+        <key name="enable-workspace-indicator" type="b">
       <default>false</default>
       <summary>Enable the custom workspace indicator.</summary>
     </key>
+    
+    <!-- Workspace hide in menu -->
+    <key name="hide-workspace-indices" type="s">
+      <default>''</default>
+      <summary>A comma-separated list of workspace indices to hide.</summary>
+      <description>For power-users (e.g., PaperWM) who want to manually hide specific workspaces from the menu. This is zero-indexed. Example: 1, 2</description>
+    </key>
+
     
     <!-- Activities Button dropdown -->
     <key name="activities-button-mode" type="s">
