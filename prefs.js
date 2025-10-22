@@ -89,34 +89,96 @@ class TopPanelPage {
             'enable-workspace-indicator'
         ));
 
-        // Use an ActionRow to get a subtitle
+        // Create a row for the manual hide setting
         const hideIndicesRow = new Adw.ActionRow({
-            title: _('Hide Workspace Indices'),
-            subtitle: _('Comma-separated, zero-indexed (e.g., 1, 2)'),
+            title: _('Hide Workspaces from Menu'),
+            subtitle: _('Comma-separated, zero-indexed workspace numbers to hide'),
         });
-        
-        // Create a text entry widget
+
+        // Create the text entry widget
         const entry = new Gtk.Entry({
             text: settings.get_string('hide-workspace-indices'),
             valign: Gtk.Align.CENTER,
-            hexpand: true, // Make sure it fills the available space
         });
-        
-        // Bind the setting to the entry's text property
+
+        // Bind the entry's text to the GSetting
         settings.bind(
-            'hide-workspace-indices', 
-            entry, 
-            'text', 
+            'hide-workspace-indices',
+            entry,
+            'text',
             Gio.SettingsBindFlags.DEFAULT
         );
 
-        // Add the entry as a suffix widget
         hideIndicesRow.add_suffix(entry);
-        // Make the entry box the "activatable" widget for the row
         hideIndicesRow.activatable_widget = entry;
         
         wsGroup.add(hideIndicesRow);
 
+        // --- Combined Position and Index Row ---
+        
+        // 1. Create the main row with your new title
+        const positionRow = new Adw.ActionRow({
+            title: _('Indicator Position'),
+        });
+        
+        // 2. Create a horizontal box to hold the widgets
+        const box = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            // REMOVED: css_classes: ['linked'],
+            valign: Gtk.Align.CENTER,
+            spacing: 6, // Add some spacing between the widgets
+        });
+
+        // 3. Create the Dropdown
+        const positionMapping = ['left', 'center', 'right'];
+        const positionDropdown = new Gtk.DropDown({
+            // Use capitalized strings for display
+            model: Gtk.StringList.new(['Left', 'Center', 'Right']),
+        });
+        
+        // Set the dropdown to the saved setting
+        const currentPosition = settings.get_string('workspace-indicator-position');
+        positionDropdown.set_selected(positionMapping.indexOf(currentPosition));
+
+        // Connect the dropdown's 'notify::selected' signal to update the setting
+        positionDropdown.connect('notify::selected', () => {
+            // Get the lowercase value from our mapping to save to settings
+            const newPosition = positionMapping[positionDropdown.selected];
+            settings.set_string('workspace-indicator-position', newPosition);
+        });
+        
+        // 4. Create the Spinner
+        const indexSpinAdjustment = new Gtk.Adjustment({
+            value: settings.get_int('workspace-indicator-index'),
+            lower: 0,
+            upper: 20,
+            step_increment: 1,
+        });
+        
+        const indexSpinner = new Gtk.SpinButton({
+            adjustment: indexSpinAdjustment,
+            digits: 0, // No decimals
+            valign: Gtk.Align.CENTER,
+        });
+        
+        // Bind the spinner's adjustment value directly to the setting
+        settings.bind(
+            'workspace-indicator-index',
+            indexSpinAdjustment, // Bind to the adjustment, not the widget
+            'value',
+            Gio.SettingsBindFlags.DEFAULT
+        );
+
+        // 5. Add the widgets to the box
+        box.append(positionDropdown);
+        box.append(indexSpinner);
+
+        // 6. Add the box as the suffix to our main row
+        positionRow.add_suffix(box);
+        
+        // 7. Add the new combined row to the group
+        wsGroup.add(positionRow);
+        
         // --- GROUP 2: Activities Button ---
         const activitiesGroup = new Adw.PreferencesGroup({
             title: _('Activities Button'),
@@ -140,12 +202,12 @@ class TopPanelPage {
         activitiesGroup.add(activitiesRow);
         
         // --- GROUP 3: Mouse Barrier ---
-        const barrierGroup = new Adw.PreferencesGroup({
+        const mouseGroup = new Adw.PreferencesGroup({
             title: _('Mouse Barrier'),
         });
-        this.page.add(barrierGroup);
+        this.page.add(mouseGroup);
 
-        barrierGroup.add(createSwitch(
+        mouseGroup.add(createSwitch(
             'Remove Top-Right Mouse Barrier',
             'A shell restart is required to restore barrier once removed.',
             settings,
@@ -207,6 +269,10 @@ class AboutPage {
 
 export default class QuibblesPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
+        // Set a default size for the window
+        // We set a comfortable width and let the height adjust automatically.
+        window.set_default_size(720, -1);
+
         const settings = this.getSettings();
         const topPanelPage = new TopPanelPage(settings);
         const windowMenuPage = new WindowMenuPage(settings);

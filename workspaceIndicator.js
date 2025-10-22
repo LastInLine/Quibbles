@@ -113,9 +113,11 @@ export class WorkspaceIndicatorFeature {
         this._settingsConnection = null;
         this._indicator = null;
         this._workspaceChangedId = null;
-
-        // NEW: Connection for our manual hide setting
         this._hideSettingId = null;
+
+        // --- NEW: Connections for position settings ---
+        this._positionSettingId = null;
+        this._indexSettingId = null;
     }
 
     /**
@@ -135,6 +137,17 @@ export class WorkspaceIndicatorFeature {
             () => this._rebuildIndicator()
         );
 
+        // --- NEW: Listen for position changes ---
+        this._positionSettingId = this._settings.connect(
+            'changed::workspace-indicator-position',
+            () => this._rebuildIndicator()
+        );
+        this._indexSettingId = this._settings.connect(
+            'changed::workspace-indicator-index',
+            () => this._rebuildIndicator()
+        );
+        // --- END NEW ---
+
         // Apply the setting immediately on startup.
         this._updateWorkspaceIndicator();
     }
@@ -153,6 +166,17 @@ export class WorkspaceIndicatorFeature {
             this._hideSettingId = null;
         }
 
+        // --- NEW: Disconnect position listeners ---
+        if (this._positionSettingId) {
+            this._settings.disconnect(this._positionSettingId);
+            this._positionSettingId = null;
+        }
+        if (this._indexSettingId) {
+            this._settings.disconnect(this._indexSettingId);
+            this._indexSettingId = null;
+        }
+        // --- END NEW ---
+
         // Cleanly destroy the indicator and its listeners.
         this._destroyIndicator();
     }
@@ -166,7 +190,12 @@ export class WorkspaceIndicatorFeature {
             if (!this._indicator) {
                 // Pass settings to the indicator
                 this._indicator = new MyIndicator(this._settings);
-                Main.panel.addToStatusArea('quibbles-workspace-indicator', this._indicator, 2, 'left');
+                
+                // --- UPDATED: Use settings for position ---
+                const position = this._settings.get_string('workspace-indicator-position');
+                const index = this._settings.get_int('workspace-indicator-index');
+                Main.panel.addToStatusArea('quibbles-workspace-indicator', this._indicator, index, position);
+                // --- END UPDATE ---
 
                 // Watch for workspace changes to rebuild the indicator with the correct label.
                 this._workspaceChangedId = global.workspace_manager.connect(
@@ -193,7 +222,12 @@ export class WorkspaceIndicatorFeature {
         this._indicator?.destroy();
         // Pass settings to the indicator
         this._indicator = new MyIndicator(this._settings);
-        Main.panel.addToStatusArea('quibbles-workspace-indicator', this._indicator, 2, 'left');
+        
+        // --- UPDATED: Use settings for position ---
+        const position = this._settings.get_string('workspace-indicator-position');
+        const index = this._settings.get_int('workspace-indicator-index');
+        Main.panel.addToStatusArea('quibbles-workspace-indicator', this._indicator, index, position);
+        // --- END UPDATE ---
     }
 
     /**
@@ -208,5 +242,6 @@ export class WorkspaceIndicatorFeature {
         this._indicator = null;
     }
 }
+
 
 
