@@ -7,6 +7,7 @@
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
+import Pango from 'gi://Pango'; // <-- Added for FontDescription
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 // This is the full, canonical list of all possible window menu items.
@@ -48,7 +49,7 @@ class WindowMenuPage {
         this.page.add(group);
         
         ALL_MENU_ITEMS.forEach(itemName => {
-            const row = new Adw.ActionRow({ title: itemName });
+            const row = new Adw.ActionRow({ title: _(itemName) }); // Added translation
             group.add(row);
             const toggle = new Gtk.Switch({
                 active: settings.get_strv('visible-items').includes(itemName),
@@ -83,8 +84,8 @@ class TopPanelPage {
         this.page.add(wsGroup);
 
         wsGroup.add(createSwitch(
-            'Enable Workspace Indicator',
-            'Displays the current workspace name and a switcher menu.',
+            _('Enable Workspace Indicator'),
+            _('Displays the current workspace name and a switcher menu.'),
             settings,
             'enable-workspace-indicator'
         ));
@@ -92,7 +93,7 @@ class TopPanelPage {
         // Create a row for the manual hide setting
         const hideIndicesRow = new Adw.ActionRow({
             title: _('Hide Workspaces from Menu'),
-            subtitle: _('Comma-separated, zero-indexed workspace numbers to hide'),
+            subtitle: _('Use comma-separated, zero-indexed workspace IDs.'),
         });
 
         // Create the text entry widget
@@ -124,7 +125,6 @@ class TopPanelPage {
         // 2. Create a horizontal box to hold the widgets
         const box = new Gtk.Box({
             orientation: Gtk.Orientation.HORIZONTAL,
-            // REMOVED: css_classes: ['linked'],
             valign: Gtk.Align.CENTER,
             spacing: 6, // Add some spacing between the widgets
         });
@@ -133,7 +133,8 @@ class TopPanelPage {
         const positionMapping = ['left', 'center', 'right'];
         const positionDropdown = new Gtk.DropDown({
             // Use capitalized strings for display
-            model: Gtk.StringList.new(['Left', 'Center', 'Right']),
+            model: Gtk.StringList.new([_('Left'), _('Center'), _('Right')]),
+            valign: Gtk.Align.CENTER, // <-- Added for consistency
         });
         
         // Set the dropdown to the saved setting
@@ -185,21 +186,29 @@ class TopPanelPage {
         });
         this.page.add(activitiesGroup);
 
-        const activitiesRow = new Adw.ComboRow({
+        // --- UPDATED WIDGET ---
+        const activitiesRow = new Adw.ActionRow({
             title: _('Activities Button Behavior'),
-            model: new Gtk.StringList({ strings: [_('Default'), _('Unclickable'), _('Hidden')] }),
         });
         
         const stringMapping = ['default', 'unclickable', 'hidden'];
+        const activitiesDropdown = new Gtk.DropDown({
+            model: Gtk.StringList.new([_('Default'), _('Unclickable'), _('Hidden')]),
+            valign: Gtk.Align.CENTER,
+        });
 
         const currentMode = settings.get_string('activities-button-mode');
-        activitiesRow.selected = stringMapping.indexOf(currentMode);
+        activitiesDropdown.set_selected(stringMapping.indexOf(currentMode));
 
-        activitiesRow.connect('notify::selected', () => {
-            const newMode = stringMapping[activitiesRow.selected];
+        activitiesDropdown.connect('notify::selected', () => {
+            const newMode = stringMapping[activitiesDropdown.selected];
             settings.set_string('activities-button-mode', newMode);
         });
+        
+        activitiesRow.add_suffix(activitiesDropdown);
+        activitiesRow.set_activatable_widget(activitiesDropdown);
         activitiesGroup.add(activitiesRow);
+        // --- END UPDATED WIDGET ---
         
         // --- GROUP 3: Mouse Barrier ---
         const mouseGroup = new Adw.PreferencesGroup({
@@ -208,13 +217,109 @@ class TopPanelPage {
         this.page.add(mouseGroup);
 
         mouseGroup.add(createSwitch(
-            'Remove Top-Right Mouse Barrier',
-            'A shell restart is required to restore barrier once removed.',
+            _('Remove Top-Right Mouse Barrier'),
+            _('A shell restart is required to restore barrier once removed.'),
             settings,
             'remove-mouse-barrier'
         ));
     }
 }
+
+/**
+ * New page for Lockscreen settings.
+ */
+class LockscreenPage {
+    constructor(settings) {
+        this.page = new Adw.PreferencesPage({
+            title: _('Lockscreen'),
+            iconName: 'system-lock-screen-symbolic'
+        });
+
+        // --- Lockscreen Clock Group ---
+        const clockGroup = new Adw.PreferencesGroup({
+            title: _('Lockscreen Clock'),
+        });
+        this.page.add(clockGroup);
+
+        // --- Font Button ---
+        const fontRow = new Adw.ActionRow({
+            title: _('Clock Font'),
+        });
+        clockGroup.add(fontRow);
+
+        const fontButton = new Gtk.FontButton({
+            valign: Gtk.Align.CENTER,
+            font: settings.get_string('font-desc'),
+            use_font: false,
+            use_size: false,
+            level: Gtk.FontChooserLevel.FONT | Gtk.FontChooserLevel.SIZE | Gtk.FontChooserLevel.FEATURES,
+        });
+        
+        fontRow.add_suffix(fontButton);
+        fontRow.set_activatable_widget(fontButton);
+
+        fontButton.connect('font-set', () => {
+            const newFontDescString = fontButton.get_font();
+            settings.set_string('font-desc', newFontDescString);
+        });
+
+        // --- Lockscreen Unblank Group ---
+        const unblankGroup = new Adw.PreferencesGroup({
+            title: _('Lockscreen Unblank'),
+            description: _('Prevents the lock screen from fading to black.'),
+        });
+        this.page.add(unblankGroup);
+
+        // Master Enable Toggle
+        unblankGroup.add(createSwitch(
+            _('Enable Lockscreen Unblank'),
+            null,
+            settings,
+            'enable-unblank'
+        ));
+
+        // AC Power setting
+        unblankGroup.add(createSwitch(
+            _('Unblank Only on AC Power'),
+            null,
+            settings,
+            'power'
+        ));
+        
+        // --- UPDATED WIDGET ---
+        const timeRow = new Adw.ActionRow({
+            title: _('Time until blank'),
+        });
+        
+        // These are the display names
+        const timeoutStrings = [
+            _('Never'), _('5 minutes'), _('10 minutes'), _('15 minutes'),
+            _('30 minutes'), _('60 minutes'), _('90 minutes'), _('120 minutes')
+        ];
+        // These are the actual values (in seconds) to save
+        const timeoutValues = [0, 300, 600, 900, 1800, 3600, 5400, 7200];
+        
+        const timeoutDropdown = new Gtk.DropDown({
+            model: Gtk.StringList.new(timeoutStrings),
+            valign: Gtk.Align.CENTER,
+        });
+
+        const currentTime = settings.get_int('time');
+        const currentIndex = timeoutValues.indexOf(currentTime);
+        timeoutDropdown.set_selected(currentIndex > -1 ? currentIndex : 0); // Default to 'Never' if not found
+
+        timeoutDropdown.connect('notify::selected', () => {
+            const newTimeValue = timeoutValues[timeoutDropdown.selected];
+            settings.set_int('time', newTimeValue);
+        });
+        
+        timeRow.add_suffix(timeoutDropdown);
+        timeRow.set_activatable_widget(timeoutDropdown);
+        unblankGroup.add(timeRow);
+        // --- END UPDATED WIDGET ---
+    }
+}
+
 
 /**
  * A new class to build the "About" page.
@@ -242,7 +347,7 @@ class AboutPage {
         
         const descriptionRow = new Adw.ActionRow({
             title: _('Description'),
-            subtitle: extension.metadata.description,
+            subtitle: _(extension.metadata.description), // Added translation
         });
         group.add(descriptionRow);
 
@@ -276,10 +381,12 @@ export default class QuibblesPreferences extends ExtensionPreferences {
         const settings = this.getSettings();
         const topPanelPage = new TopPanelPage(settings);
         const windowMenuPage = new WindowMenuPage(settings);
+        const lockscreenPage = new LockscreenPage(settings); // <-- Add new page
         const aboutPage = new AboutPage(this);
 
         window.add(topPanelPage.page);
         window.add(windowMenuPage.page);
+        window.add(lockscreenPage.page); // <-- Add new page
         window.add(aboutPage.page);
     }
 }
