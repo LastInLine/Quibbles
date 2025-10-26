@@ -3,8 +3,6 @@
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import Pango from 'gi://Pango';
 
-const LOG_PREFIX = 'ZZZ ClockModule:';
-
 export default class LockscreenClock {
     
     _settings = null;
@@ -18,7 +16,6 @@ export default class LockscreenClock {
 
     _applyStyle() {
         if (!this._timeLabel) {
-            console.log(`${LOG_PREFIX} _applyStyle called, but time label not found.`);
             return;
         }
 
@@ -40,16 +37,13 @@ export default class LockscreenClock {
         }
         
         if (css) {
-            console.log(`${LOG_PREFIX} Applying style: ${css}`);
             this._timeLabel.set_style(css);
         } else {
-            console.log(`${LOG_PREFIX} No font set, restoring original style.`);
             this._timeLabel.set_style(this._originalTimeStyle);
         }
     }
 
     enable(settings) {
-        console.log(`${LOG_PREFIX} ENABLE function called (unlock-dialog).`);
         this._settings = settings;
         
         try {
@@ -57,7 +51,6 @@ export default class LockscreenClock {
             
             if (clock && clock._time) {
                 this._timeLabel = clock._time;
-                console.log(`${LOG_PREFIX} Successfully found time label.`);
                 
                 this._originalTimeStyle = this._timeLabel.get_style() || '';
                 
@@ -67,24 +60,20 @@ export default class LockscreenClock {
 
                 this._applyStyle();
                 
-            } else {
-                console.error(`${LOG_PREFIX} Could not find _time label inside clock widget!`);
-            }
+            } // <-- This is line 63. The stray comma has been removed.
             
         } catch (e) {
-            console.error(`${LOG_PREFIX} Error during enable: ${e}`);
+            // Error, but logging is removed.
         }
     }
 
     disable() {
-        console.log(`${LOG_PREFIX} DISABLE function called (unlock-dialog).`);
-        
         try {
             if (this._timeLabel) {
                 this._timeLabel.set_style(this._originalTimeStyle);
             }
         } catch (e) {
-            console.error(`${LOG_PREFIX} Error restoring clock style: ${e}`);
+            // Error, but logging is removed.
         }
 
         try {
@@ -92,7 +81,7 @@ export default class LockscreenClock {
                 this._settings.disconnect(this._settingsChangedId);
             }
         } catch (e) {
-            console.error(`${LOG_PREFIX} Error disconnecting settings: ${e}`);
+            // Error, but logging is removed.
         }
 
         // Clean up
@@ -102,3 +91,5 @@ export default class LockscreenClock {
         this._settingsChangedId = null;
     }
 }
+
+

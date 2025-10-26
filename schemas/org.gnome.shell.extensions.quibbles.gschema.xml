@@ -54,14 +54,14 @@
       <summary>The window menu items to display.</summary>
     </key>
     
-    <!-- === NEW: Lockscreen Clock === -->
+    <!-- === Lockscreen Clock === -->
     <key name="font-desc" type="s">
       <default>"Adwaita Sans 200 96"</default>
       <summary>Lockscreen Clock Font</summary>
       <description>The Pango font description string for the lockscreen clock.</description>
     </key>
 
-    <!-- === NEW: Lockscreen Unblank === -->
+    <!-- === Lockscreen Unblank === -->
     <key name="enable-unblank" type="b">
       <default>true</default>
       <summary>Enable the "Unblank Lockscreen" feature</summary>
@@ -80,7 +80,25 @@
       <description>Time in seconds before the screen blanks. Set to 0 to disable screen blanking entirely.</description>
     </key>
 
+    <!-- === Quick Settings === -->
+    <key name="hide-screenshot-button" type="b">
+      <default>false</default>
+      <summary>Hide the Screenshot button in Quick Settings.</summary>
+    </key>
+    
+    <!-- === System Menu Tweaks === -->
+    <key name="system-menu-apps" type="as">
+      <default>['gnome-tweaks.desktop', 'org.gnome.Shell.Extensions.desktop']</default>
+      <summary>Applications to show in the system menu.</summary>
+      <description>List of .desktop file IDs.</description>
+    </key>
+
+    <key name="system-menu-position" type="i">
+      <default>-1</default>
+      <summary>Position of the app launchers.</summary>
+      <description>The index to insert the buttons at. -1 means 'after the Settings button'.</description>
+    </key>
+
   </schema>
 </schemalist>
-
 

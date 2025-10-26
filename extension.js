@@ -1,3 +1,5 @@
+// Quibbles - Copyright (C) 2025 LastInLine - See LICENSE file for details.
+
 /**
  * Main logic for the "Quibbles" GNOME Shell Extension.
  * This file acts as a "manager" that loads and controls
@@ -12,6 +14,8 @@ import { MouseBarrierFeature } from './mouseBarrier.js';
 import { ActivitiesButtonFeature } from './activitiesButton.js';
 import { WindowMenuFeature } from './windowMenu.js';
 import { WorkspaceIndicatorFeature } from './workspaceIndicator.js';
+import { ScreenshotButtonModule } from './screenshotButton.js';
+import { SystemMenuModule } from './systemMenu.js';
 
 // --- Lock Screen Features ---
 import LockscreenClock from './lockscreenClock.js';
@@ -29,6 +33,8 @@ export default class QuibblesExtension extends Extension {
         this._activitiesFeature = null;
         this._windowMenuFeature = null;
         this._indicatorFeature = null;
+        this._screenshotButtonFeature = null;
+        this._systemMenuFeature = null;
 
         // --- Properties for Lock Screen ---
         this._lockSettings = null; 
@@ -40,127 +46,154 @@ export default class QuibblesExtension extends Extension {
         this._sessionId = null;
     }
 
-    // --- Lock Screen Handlers ---
 
-    _enableLockScreen() {
-        // Get settings just for the lockscreen features.
-        this._lockSettings = this.getSettings();
+    // --- State Enable/Disable Functions ---
 
-        // Enable clock
-        if (!this._clockModule) {
-            this._clockModule = new LockscreenClock();
-            this._clockModule.enable(this._lockSettings);
-        }
-
-        // Connect to the master toggle for the unblank feature
-        this._unblankToggleSignalId = this._lockSettings.connect(
-            'changed::enable-unblank',
-            () => this._checkUnblankState()
-        );
+    /**
+     * Enables all features that run in the user session.
+     */
+    _enableUserSession() {
+        this._settings = this.getSettings();
         
-        // Run the check once to set the initial state
-        this._checkUnblankState();
+        try {
+            this._barrierFeature = new MouseBarrierFeature(this._settings);
+            this._barrierFeature.enable();
+        } catch(e) { }
+        
+        try {
+            this._activitiesFeature = new ActivitiesButtonFeature(this._settings);
+            this._activitiesFeature.enable();
+        } catch(e) { }
+        
+        try {
+            this._windowMenuFeature = new WindowMenuFeature(this._settings);
+            this._windowMenuFeature.enable();
+        } catch(e) { }
+
+        try {
+            this._indicatorFeature = new WorkspaceIndicatorFeature(this._settings);
+            this._indicatorFeature.enable();
+        } catch(e) { }
+        
+        try {
+            this._screenshotButtonFeature = new ScreenshotButtonModule(this._settings);
+            this._screenshotButtonFeature.enable();
+        } catch(e) { }
+        
+        try {
+            this._systemMenuFeature = new SystemMenuModule(this._settings);
+            this._systemMenuFeature.enable();
+        } catch(e) { }
     }
 
     /**
-     * Checks the 'enable-unblank' setting and enables/disables
-     * the unblank module as needed.
+     * Disables all features that run in the user session.
      */
-    _checkUnblankState() {
-        if (this._lockSettings.get_boolean('enable-unblank')) {
-            // Setting is ON, so enable the module if it's not already
-            if (!this._unblankModule) {
-                this._unblankModule = new LockscreenUnblank();
-                this._unblankModule.enable(this._lockSettings);
-            }
-        } else {
-            // Setting is OFF, so disable the module if it's running
-            if (this._unblankModule) {
-                this._unblankModule.disable();
-                this._unblankModule = null;
-            }
-        }
-    }
-
-    _disableLockScreen() {
-        // Disconnect the signal handler
-        if (this._unblankToggleSignalId) {
-            this._lockSettings.disconnect(this._unblankToggleSignalId);
-            this._unblankToggleSignalId = null;
-        }
-
-        // Disable clock
-        if (this._clockModule) {
-            this._clockModule.disable();
-            this._clockModule = null;
-        }
-
-        // Disable unblank
-        if (this._unblankModule) {
-            this._unblankModule.disable();
-            this._unblankModule = null;
-        }
-        
-        // Clean up the lockscreen settings object
-        this._lockSettings?.run_dispose();
-        this._lockSettings = null;
-    }
-
-    // --- User Session Handlers ---
-    _enableUserSession() {
-        if (this._settings) return; // Already enabled
-
-        this._settings = this.getSettings();
-        
-        this._barrierFeature = new MouseBarrierFeature(this._settings);
-        this._barrierFeature.enable();
-
-        this._activitiesFeature = new ActivitiesButtonFeature(this._settings);
-        this._activitiesFeature.enable();
-
-        this._windowMenuFeature = new WindowMenuFeature(this._settings);
-        this._windowMenuFeature.enable();
-
-        this._indicatorFeature = new WorkspaceIndicatorFeature(this._settings);
-        this._indicatorFeature.enable();
-    }
-
     _disableUserSession() {
-        if (!this._settings) return; // Already disabled
-
         if (this._barrierFeature) {
             this._barrierFeature.disable();
             this._barrierFeature = null;
         }
-
+        
         if (this._activitiesFeature) {
             this._activitiesFeature.disable();
             this._activitiesFeature = null;
         }
-
+        
         if (this._windowMenuFeature) {
             this._windowMenuFeature.disable();
             this._windowMenuFeature = null;
         }
-
+        
         if (this._indicatorFeature) {
             this._indicatorFeature.disable();
             this._indicatorFeature = null;
         }
         
+        if (this._screenshotButtonFeature) {
+            this._screenshotButtonFeature.disable();
+            this._screenshotButtonFeature = null;
+        }
+        
+        if (this._systemMenuFeature) {
+            this._systemMenuFeature.disable();
+            this._systemMenuFeature = null;
+        }
+        
         this._settings?.run_dispose();
         this._settings = null;
+    }
+    
+    /**
+     * Enables all features that run on the lock screen.
+     */
+    _enableLockScreen() {
+        this._lockSettings = this.getSettings();
+
+        try {
+            this._clockModule = new LockscreenClock(this._lockSettings);
+            this._clockModule.enable();
+        } catch(e) { }
+
+        try {
+            this._unblankModule = new LockscreenUnblank(this._lockSettings);
+            
+            this._unblankToggleSignalId = this._lockSettings.connect(
+                'changed::enable-unblank',
+                () => this._onUnblankToggleChanged()
+            );
+            
+            this._onUnblankToggleChanged();
+        } catch(e) { }
+    }
+    
+    /**
+     * Disables all features that run on the lock screen.
+     */
+    _disableLockScreen() {
+        if (this._clockModule) {
+            this._clockModule.disable();
+            this._clockModule = null;
+        }
+
+        if (this._unblankToggleSignalId) {
+            this._lockSettings.disconnect(this._unblankToggleSignalId);
+            this._unblankToggleSignalId = null;
+        }
+        
+        if (this._unblankModule) {
+            this._unblankModule.disable();
+            this._unblankModule = null;
+        }
+        
+        this._lockSettings?.run_dispose();
+        this._lockSettings = null;
+    }
+
+    /**
+     * Signal handler for the 'enable-unblank' setting.
+     */
+    _onUnblankToggleChanged() {
+        if (!this._lockSettings || !this._unblankModule) return;
+        
+        const shouldEnable = this._lockSettings.get_boolean('enable-unblank');
+        
+        if (shouldEnable) {
+            this._unblankModule.enable();
+        } else {
+            this._unblankModule.disable();
+        }
     }
 
 
     // --- Session Mode Switching Logic ---
     _onSessionModeChanged(session) {
-        if (session.currentMode === 'unlock-dialog') {
-            // We are on the lock screen
+        const currentMode = session.currentMode;
+        
+        if (currentMode === 'unlock-dialog' || currentMode === 'gdm') {
             this._disableUserSession();
             this._enableLockScreen();
-        } else {
-            // We are in the user session
+        } else if (currentMode === 'user') {
             this._disableLockScreen();
             this._enableUserSession();
         }
@@ -178,7 +211,6 @@ export default class QuibblesExtension extends Extension {
     disable() {
         // This extension uses 'unlock-dialog' session mode to modify the lock screen
         // clock font. All UI elements and listeners are cleaned up here.
-        
         if (this._sessionId) {
             Main.sessionMode.disconnect(this._sessionId);
             this._sessionId = null;
@@ -189,5 +221,3 @@ export default class QuibblesExtension extends Extension {
         this._disableUserSession();
     }
 }
-
-
