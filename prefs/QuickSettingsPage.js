@@ -44,6 +44,8 @@ const SystemMenuAppsPicker = GObject.registerClass(
             const dialog = new Gtk.AppChooserDialog({
                 transient_for: this.get_root(),
                 modal: true,
+                default_width: 400,
+                default_height: 500,
             });
             dialog.get_widget().set({show_all: true});
             dialog.connect('response', (dlg, id) => {
@@ -245,4 +247,5 @@ export class QuickSettingsPage {
         this.page.add(new SystemMenuAppsPicker(settings));
     }
 }
+
 
