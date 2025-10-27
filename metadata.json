@@ -3,7 +3,7 @@
   "description": "A collection of personal tweaks to the GNOME Shell with an eye toward eliminating use of the overview menu and accommodating the PaperWM window manager.",
   "uuid": "quibbles@lastinline.gmail.com",
   "shell-version": ["48", "49"],
-  "version-name": "2.0",
+  "version-name": "3.0",
   "url": "https://github.com/LastInLine/Quibbles",
   "settings-schema": "org.gnome.shell.extensions.quibbles",
   "session-modes": ["user", "unlock-dialog"]

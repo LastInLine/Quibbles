@@ -8,16 +8,16 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 // --- User Session Features ---
-import { MouseBarrierFeature } from './mouseBarrier.js';
-import { ActivitiesButtonFeature } from './activitiesButton.js';
-import { WindowMenuFeature } from './windowMenu.js';
-import { WorkspaceIndicatorFeature } from './workspaceIndicator.js';
-import { ScreenshotButtonModule } from './screenshotButton.js';
-import { SystemMenuModule } from './systemMenu.js';
+import { MouseBarrierFeature } from './modules/mouseBarrier.js';
+import { ActivitiesButtonFeature } from './modules/activitiesButton.js';
+import { WindowMenuFeature } from './modules/windowMenu.js';
+import { WorkspaceIndicatorFeature } from './modules/workspaceIndicator.js';
+import { ScreenshotButtonModule } from './modules/screenshotButton.js';
+import { SystemMenuModule } from './modules/systemMenu.js';
 
 // --- Lock Screen Features ---
-import LockscreenClock from './lockscreenClock.js';
-import LockscreenUnblank from './lockscreenUnblank.js';
+import LockscreenClock from './modules/lockscreenClock.js';
+import LockscreenUnblank from './modules/lockscreenUnblank.js';
 
 // --- Main Extension Class ---
 export default class QuibblesExtension extends Extension {

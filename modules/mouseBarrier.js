@@ -1,3 +1,5 @@
+// Quibbles - Copyright (C) 2025 LastInLine - See LICENSE file for details.
+
 /**
  * Mouse Barrier Feature
  *

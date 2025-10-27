@@ -1,8 +1,9 @@
+// Quibbles - Copyright (C) 2025 LastInLine - See LICENSE file for details.
+
 /**
  * Window Menu Feature
  *
- * This file contains all the logic for "monkey-patching" the
- * window context menu to show/hide items based on user settings.
+ * Show/hide window context menu items based on user settings.
  */
 
 import { WindowMenu } from 'resource:///org/gnome/shell/ui/windowMenu.js';

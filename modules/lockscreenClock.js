@@ -1,3 +1,9 @@
+// Quibbles - Copyright (C) 2025 LastInLine - See LICENSE file for details.
+
+/**
+ * Allows the user to specify the lockscreen clock font.
+ */
+ 
 'use strict';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -11,7 +17,6 @@ export default class LockscreenClock {
     _settingsChangedId = null;
 
     constructor() {
-        // Properties are initialized here
     }
 
     _applyStyle() {
@@ -60,10 +65,9 @@ export default class LockscreenClock {
 
                 this._applyStyle();
                 
-            } // <-- This is line 63. The stray comma has been removed.
+            }
             
         } catch (e) {
-            // Error, but logging is removed.
         }
     }
 
@@ -73,7 +77,6 @@ export default class LockscreenClock {
                 this._timeLabel.set_style(this._originalTimeStyle);
             }
         } catch (e) {
-            // Error, but logging is removed.
         }
 
         try {
@@ -81,7 +84,6 @@ export default class LockscreenClock {
                 this._settings.disconnect(this._settingsChangedId);
             }
         } catch (e) {
-            // Error, but logging is removed.
         }
 
         // Clean up

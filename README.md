@@ -16,6 +16,8 @@ The user can:
   - Improve the lockscreen appearance with a simple change.
 - **Unblank the lockscreen**
   - Used with attribution from the excellent [Unblank lock screen](https://github.com/sunwxg/gnome-shell-extension-unblank) by Xiaoguang Wang.
+- **Add shortcuts to the system icon row in the Quick Settings menu**
+  - Used with attribution from a longtime favorite [Tweaks & Extensions in System Menu](https://github.com/F-i-f/tweaks-system-menu) by Philippe Troin (F-i-f).
   
 ## Installation
 

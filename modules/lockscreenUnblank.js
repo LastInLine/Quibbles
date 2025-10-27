@@ -1,3 +1,9 @@
+// Quibbles - Copyright (C) 2025 LastInLine - See LICENSE file for details.
+
+/**
+ * Keeps lockscreen visible for a user-specified length of time.
+ */
+
 'use strict';
 
 //
