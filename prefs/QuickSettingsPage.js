@@ -208,39 +208,57 @@ export class QuickSettingsPage {
         // Create the ActionRow for the position setting
         const positionRow = new Adw.ActionRow({
             title: _('Launcher Position'),
-            subtitle: _('If set to -1 the position is automatic and buttons will show up after the Settings, otherwise the position is zero-indexed.'),
-        });
-        
-        // Create the Adjustment for the spinner
-        const positionAdjustment = new Gtk.Adjustment({
-            lower: -1,  // Fixed: Manually set bounds
-            upper: 20,  // Fixed: Manually set bounds
-            step_increment: 1,
         });
 
-        // Bind the adjustment's value to the setting
-        settings.bind(
-            'system-menu-position',
-            positionAdjustment,
-            'value',
-            Gio.SettingsBindFlags.DEFAULT
-        );
-
-        // Create the compact SpinButton
-        const positionSpinner = new Gtk.SpinButton({
-            adjustment: positionAdjustment,
+        // Create the dropdown widget
+        const positionDropdown = new Gtk.DropDown({
+            model: Gtk.StringList.new([
+                _('Leftmost'),
+                _('After Screenshot'),
+            ]),
             valign: Gtk.Align.CENTER,
-            numeric: true,
-            climb_rate: 1,
-            digits: 0, // No decimals
+        });
+
+        // Add the dropdown as a suffix to the row
+        positionRow.add_suffix(positionDropdown);
+        positionRow.activatable_widget = positionDropdown;
+        
+        // This helper function converts the GSettings integer (2 or 3)
+        // to the dropdown's index (0 or 1).
+        const intToSelection = (intValue) => {
+            if (intValue === 2) {
+                return 0; // "Leftmost"
+            }
+            return 1; // "After Screenshot" (default for 3 or any other value)
+        };
+
+        // This helper function converts the dropdown's index (0 or 1)
+        // back to the GSettings integer (2 or 3).
+        const selectionToInt = (selection) => {
+            if (selection === 0) {
+                return 2; // "Leftmost"
+            }
+            return 3; // "After Screenshot"
+        };
+        
+        // Set the initial selection
+        const currentPos = settings.get_int('system-menu-position');
+        positionDropdown.set_selected(intToSelection(currentPos));
+
+        // When the dropdown selection changes, update the GSetting
+        positionDropdown.connect('notify::selected', () => {
+            const newIntVal = selectionToInt(positionDropdown.selected);
+            settings.set_int('system-menu-position', newIntVal);
+        });
+
+        // When the GSetting changes (e.g., dconf-editor), update the dropdown
+        settings.connect('changed::system-menu-position', () => {
+            const newPos = settings.get_int('system-menu-position');
+            positionDropdown.set_selected(intToSelection(newPos));
         });
         
-        // Add the compact spinner as the suffix
-        positionRow.add_suffix(positionSpinner);
-        positionRow.activatable_widget = positionSpinner;
-        
-        // Add the position row to its own group
-        positionGroup.add(positionRow); 
+        // Add the new row to the group
+        positionGroup.add(positionRow);
         
         // --- GROUP 4: System Menu Applications ---
         // This adds the App Picker as its own, separate group.

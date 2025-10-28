@@ -88,15 +88,15 @@
     
     <!-- === System Menu Tweaks === -->
     <key name="system-menu-apps" type="as">
-      <default>['gnome-tweaks.desktop', 'org.gnome.Shell.Extensions.desktop']</default>
+      <default>['gnome-control-center.desktop']</default>
       <summary>Applications to show in the system menu.</summary>
       <description>List of .desktop file IDs.</description>
     </key>
 
     <key name="system-menu-position" type="i">
-      <default>-1</default>
+      <default>3</default>
       <summary>Position of the app launchers.</summary>
-      <description>The index to insert the buttons at. -1 means 'after the Settings button'.</description>
+      <description>The index to insert the buttons: 2 is far left, 3 is after Screenshot, 5 is after the divide, 6 is after Lock, and 7 is far right.</description>
     </key>
 
   </schema>

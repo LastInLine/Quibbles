@@ -42,10 +42,12 @@ export class SystemMenuModule {
 
         this._appsChangedId = null;
         this._posChangedId = null;
+        
+        this._originalSettingsButton = null; // To store the original button
     }
 
     enable() {
-        // We use the same 1.5s delay to ensure the shell is ready
+        // We use a 1.5s delay to ensure the shell is ready
         this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1500, () => {
             this._initialize();
             this._timeoutId = null;
@@ -59,6 +61,18 @@ export class SystemMenuModule {
             if (!this._systemItemChild) {
                 return;
             }
+            
+            // --- NEW: Find and hide the original Settings button ---
+            const children = this._systemItemChild.get_children();
+            for (const child of children) {
+                // Find the button by its class name
+                if (child.constructor.name === 'SettingsItem') {
+                    this._originalSettingsButton = child;
+                    this._originalSettingsButton.visible = false;
+                    break;
+                }
+            }
+            // --- END NEW ---
 
             this._appsChangedId = this._settings.connect(
                 'changed::system-menu-apps',
@@ -71,7 +85,9 @@ export class SystemMenuModule {
 
             this._onApplicationsChange();
 
-        } catch (e) { }
+        } catch (e) {
+            // Fails silently if an error occurs
+        }
     }
 
     disable() {
@@ -93,6 +109,14 @@ export class SystemMenuModule {
             this._removeAppLauncher(app, button);
         }
         this._launcherButtons.clear();
+        
+        // --- NEW: Restore the original Settings button ---
+        if (this._originalSettingsButton) {
+            this._originalSettingsButton.visible = true;
+            this._originalSettingsButton = null;
+        }
+        // --- END NEW ---
+        
         this._systemItemChild = null;
     }
 
@@ -100,7 +124,9 @@ export class SystemMenuModule {
         try {
             this._systemItemChild.remove_child(button);
             button.destroy();
-        } catch (e) { }
+        } catch (e) {
+            // Fails silently
+        }
     }
 
     _onApplicationsChange() {
@@ -129,8 +155,6 @@ export class SystemMenuModule {
                 const button = new SystemMenuAppButton(appInfo);
                 this._launcherButtons.set(appId, button);
                 this._systemItemChild.add_child(button);
-            } else {
-                // App not found
             }
         }
 
@@ -148,22 +172,12 @@ export class SystemMenuModule {
             this._systemItemChild.set_child_at_index(button, endPos);
         }
 
-        // Now, position them correctly
+        // --- UPDATED: Simplified positioning ---
+        // We no longer search for the 'SettingsItem' button.
+        // We just use the position value from GSettings.
+        // The GSettings default should be 1 (or 0 if you want)
         let position = this._settings.get_int('system-menu-position');
         
-        if (position < 0) {
-            // Find the 'Settings' button
-            const children = this._systemItemChild.get_children();
-            let settingsPos = -1;
-            for (let i = 0; i < children.length; i++) {
-                if (children[i].constructor.name === 'SettingsItem') {
-                    settingsPos = i;
-                    break;
-                }
-            }
-            position = (settingsPos > -1) ? settingsPos + 1 : 1;
-        }
-
         // Re-insert our buttons at the calculated position, in order
         const appIds = this._settings.get_strv('system-menu-apps');
         for (const appId of appIds) {
@@ -175,3 +189,4 @@ export class SystemMenuModule {
         }
     }
 }
+
