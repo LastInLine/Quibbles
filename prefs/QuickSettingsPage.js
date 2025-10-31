@@ -11,9 +11,7 @@ import GObject from 'gi://GObject';
 import { gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import { createSwitch } from './utils.js';
 
-// --- Applications Picker (from Tweaks extension) ---
-// This class is only used by the QuickSettingsPage,
-// so we can define it here instead of in its own file.
+// --- Applications Picker ---
 const SystemMenuAppsPicker = GObject.registerClass(
     class SystemMenuAppsPicker extends Adw.PreferencesGroup {
         constructor(settings) {
@@ -205,12 +203,10 @@ export class QuickSettingsPage {
         });
         this.page.add(positionGroup);
         
-        // Create the ActionRow for the position setting
         const positionRow = new Adw.ActionRow({
             title: _('Launcher Position'),
         });
 
-        // Create the dropdown widget
         const positionDropdown = new Gtk.DropDown({
             model: Gtk.StringList.new([
                 _('Leftmost'),
@@ -218,8 +214,6 @@ export class QuickSettingsPage {
             ]),
             valign: Gtk.Align.CENTER,
         });
-
-        // Add the dropdown as a suffix to the row
         positionRow.add_suffix(positionDropdown);
         positionRow.activatable_widget = positionDropdown;
         

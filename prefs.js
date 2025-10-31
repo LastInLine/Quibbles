@@ -8,7 +8,6 @@
 
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-// Import all the pages from the 'Prefs' sub-directory
 import { WorkspacesPage } from './prefs/WorkspacesPage.js';
 import { WindowMenuPage } from './prefs/WindowMenuPage.js';
 import { LockscreenPage } from './prefs/LockscreenPage.js';
@@ -17,19 +16,18 @@ import { AboutPage } from './prefs/AboutPage.js';
 
 export default class QuibblesPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
-        // Set a default size for the window
+        // Default size for the window
         window.set_default_size(720, 930);
 
         const settings = this.getSettings();
         
-        // --- Instantiate all pages ---
         const workspacesPage = new WorkspacesPage(settings);
         const windowMenuPage = new WindowMenuPage(settings);
         const lockscreenPage = new LockscreenPage(settings);
         const quickSettingsPage = new QuickSettingsPage(settings);
         const aboutPage = new AboutPage(this);
 
-        // --- Add pages to window ---
+        // --- Order of pages ---
         window.add(workspacesPage.page);
         window.add(windowMenuPage.page);
         window.add(lockscreenPage.page);

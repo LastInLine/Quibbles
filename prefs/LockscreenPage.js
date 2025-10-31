@@ -16,7 +16,7 @@ export class LockscreenPage {
             iconName: 'system-lock-screen-symbolic'
         });
 
-        // --- Lockscreen Clock Group ---
+        // --- GROUP 1: Lockscreen Clock ---
         const clockGroup = new Adw.PreferencesGroup({
             title: _('Lockscreen Clock'),
         });
@@ -44,7 +44,7 @@ export class LockscreenPage {
             settings.set_string('font-desc', newFontDescString);
         });
 
-        // --- Lockscreen Unblank Group ---
+        // --- GROUP 2: Lockscreen Unblank ---
         const unblankGroup = new Adw.PreferencesGroup({
             title: _('Lockscreen Unblank'),
             description: _('Prevents the lock screen from fading to black.'),
@@ -67,7 +67,7 @@ export class LockscreenPage {
             'power'
         ));
         
-        // --- UPDATED WIDGET ---
+        // Timeout widget
         const timeRow = new Adw.ActionRow({
             title: _('Time until blank'),
         });
@@ -97,7 +97,6 @@ export class LockscreenPage {
         timeRow.add_suffix(timeoutDropdown);
         timeRow.set_activatable_widget(timeoutDropdown);
         unblankGroup.add(timeRow);
-        // --- END UPDATED WIDGET ---
     }
 }
 

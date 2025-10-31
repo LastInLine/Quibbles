@@ -10,21 +10,29 @@ import { gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensio
 
 // This is the full, canonical list of all possible window menu items.
 const ALL_MENU_ITEMS = [
-    'Scratch', 'Take Screenshot', 'Hide', 'Maximize', 'Move', 'Resize',
-    'Always on Top', 'Always on Visible Workspace',
-    'Move to Workspace Left', 'Move to Workspace Right',
-    'Move to Monitor Left', 'Move to Monitor Right', 'Close'
+    'Scratch',
+    'Take Screenshot',
+    'Hide',
+    'Maximize',
+    'Move',
+    'Resize',
+    'Always on Top',
+    'Always on Visible Workspace',
+    'Move to Workspace Left',
+    'Move to Workspace Right',
+    'Move to Monitor Left',
+    'Move to Monitor Right',
+    'Close',
 ];
 
 export class WindowMenuPage {
     constructor(settings) {
-        // Create the main page widget
         this.page = new Adw.PreferencesPage({
             title: _('Window Menu'),
             iconName: 'open-menu-symbolic'
         });
         
-        // Create a group for our settings
+        // --- GROUP 1: Menu options ---
         const group = new Adw.PreferencesGroup({
             title: _('Menu options'),
             description: _('Controls the visibility of items in the window title bar context menu.'),
@@ -32,7 +40,7 @@ export class WindowMenuPage {
         this.page.add(group);
         
         ALL_MENU_ITEMS.forEach(itemName => {
-            const row = new Adw.ActionRow({ title: _(itemName) }); // Added translation
+            const row = new Adw.ActionRow({ title: _(itemName) });
             group.add(row);
             const toggle = new Gtk.Switch({
                 active: settings.get_strv('visible-items').includes(itemName),

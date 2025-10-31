@@ -30,19 +30,17 @@ export class WorkspacesPage {
             'enable-workspace-indicator'
         ));
 
-        // Create a row for the manual hide setting
+        // --- Hide Workspaces from Menu ---
         const hideIndicesRow = new Adw.ActionRow({
             title: _('Hide Workspaces from Menu'),
             subtitle: _('Use comma-separated, zero-indexed workspace IDs.'),
         });
 
-        // Create the text entry widget
         const entry = new Gtk.Entry({
             text: settings.get_string('hide-workspace-indices'),
             valign: Gtk.Align.CENTER,
         });
 
-        // Bind the entry's text to the GSetting
         settings.bind(
             'hide-workspace-indices',
             entry,
@@ -57,38 +55,30 @@ export class WorkspacesPage {
 
         // --- Combined Position and Index Row ---
         
-        // 1. Create the main row with your new title
         const positionRow = new Adw.ActionRow({
             title: _('Indicator Position'),
         });
         
-        // 2. Create a horizontal box to hold the widgets
         const box = new Gtk.Box({
             orientation: Gtk.Orientation.HORIZONTAL,
             valign: Gtk.Align.CENTER,
-            spacing: 6, // Add some spacing between the widgets
+            spacing: 6,
         });
 
-        // 3. Create the Dropdown
         const positionMapping = ['left', 'center', 'right'];
         const positionDropdown = new Gtk.DropDown({
-            // Use capitalized strings for display
             model: Gtk.StringList.new([_('Left'), _('Center'), _('Right')]),
-            valign: Gtk.Align.CENTER, // <-- Added for consistency
+            valign: Gtk.Align.CENTER,
         });
         
-        // Set the dropdown to the saved setting
         const currentPosition = settings.get_string('workspace-indicator-position');
         positionDropdown.set_selected(positionMapping.indexOf(currentPosition));
 
-        // Connect the dropdown's 'notify::selected' signal to update the setting
         positionDropdown.connect('notify::selected', () => {
-            // Get the lowercase value from our mapping to save to settings
             const newPosition = positionMapping[positionDropdown.selected];
             settings.set_string('workspace-indicator-position', newPosition);
         });
         
-        // 4. Create the Spinner
         const indexSpinAdjustment = new Gtk.Adjustment({
             value: settings.get_int('workspace-indicator-index'),
             lower: 0,
@@ -98,26 +88,22 @@ export class WorkspacesPage {
         
         const indexSpinner = new Gtk.SpinButton({
             adjustment: indexSpinAdjustment,
-            digits: 0, // No decimals
+            digits: 0,
             valign: Gtk.Align.CENTER,
         });
         
-        // Bind the spinner's adjustment value directly to the setting
         settings.bind(
             'workspace-indicator-index',
-            indexSpinAdjustment, // Bind to the adjustment, not the widget
+            indexSpinAdjustment,
             'value',
             Gio.SettingsBindFlags.DEFAULT
         );
 
-        // 5. Add the widgets to the box
         box.append(positionDropdown);
         box.append(indexSpinner);
 
-        // 6. Add the box as the suffix to our main row
         positionRow.add_suffix(box);
         
-        // 7. Add the new combined row to the group
         wsGroup.add(positionRow);
         
         // --- GROUP 2: Activities Button ---
@@ -126,7 +112,6 @@ export class WorkspacesPage {
         });
         this.page.add(activitiesGroup);
 
-        // --- UPDATED WIDGET ---
         const activitiesRow = new Adw.ActionRow({
             title: _('Activities Button Behavior'),
         });
@@ -148,7 +133,6 @@ export class WorkspacesPage {
         activitiesRow.add_suffix(activitiesDropdown);
         activitiesRow.set_activatable_widget(activitiesDropdown);
         activitiesGroup.add(activitiesRow);
-        // --- END UPDATED WIDGET ---
     }
 }
 

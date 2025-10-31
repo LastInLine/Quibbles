@@ -21,11 +21,10 @@ export class AboutPage {
         });
 
         // --- GROUP 1: Centered Header ---
-        // We create a group to hold our custom centered layout.
         const headerGroup = new Adw.PreferencesGroup();
         this.page.add(headerGroup);
 
-        // This Box will hold and center our labels
+        // This Box will hold and center the labels
         const headerBox = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
             halign: Gtk.Align.CENTER, // Center the box itself
@@ -63,7 +62,7 @@ export class AboutPage {
         const detailsGroup = new Adw.PreferencesGroup();
         this.page.add(detailsGroup);
 
-        // --- Version Row (Info) ---
+        // --- Version Row ---
         const versionRow = new Adw.ActionRow({
             title: _('Version'),
             // Make the row un-clickable
@@ -79,7 +78,7 @@ export class AboutPage {
         }));
         detailsGroup.add(versionRow);
 
-        // --- GitHub Row (Link) ---
+        // --- GitHub Row ---
         const homepageRow = new Adw.ActionRow({
             title: _('GitHub'),
             subtitle: extension.metadata.url,
