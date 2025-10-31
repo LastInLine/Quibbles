@@ -1,6 +1,8 @@
 // Quibbles - Copyright (C) 2025 LastInLine - See LICENSE file for details.
 
 /**
+ * Lockscreen Unblank Feature
+ *
  * Keeps lockscreen visible for a user-specified length of time.
  */
 
@@ -41,7 +43,7 @@ const DisplayConfigIface = `
 </node>`;
 const DisplayConfigProxy = Gio.DBusProxy.makeProxyWrapper(DisplayConfigIface);
 
-// --- Module-scoped variable to hold our Unblank instance ---
+// --- Module-scoped variable to hold the Unblank instance ---
 let unblankInstance = null;
 
 // --- Core Unblank Class ---
@@ -91,7 +93,6 @@ class Unblank {
         Main.screenShield._resetLockScreen = this.resetLockScreenOrigin;
         Main.screenShield._onUserBecameActive = this.onUserBecameActiveOrigin;
         
-        // Clean up timers
         _deactiveTimer();
     }
 
@@ -252,16 +253,14 @@ function _turnOnMonitor() {
 }
 
 // --- Main Exported Class ---
-// This is what our extension.js will import and use.
 export default class LockscreenUnblank {
     
     constructor() {
-        // constructor is empty
     }
 
     enable(settings) {
         if (unblankInstance) {
-            return; // Already enabled
+            return;
         }
         unblankInstance = new Unblank(settings);
         unblankInstance.enable();

@@ -1,7 +1,14 @@
 // Quibbles - Copyright (C) 2025 LastInLine - See LICENSE file for details.
 
+/**
+ * Screenshot Button Feature
+ *
+ * This file contains all the logic for removing the screenshot
+ * button in the system section of the quick settings menu.
+ */
+ 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import GLib from 'gi://GLib'; // Needed for setTimeout
+import GLib from 'gi://GLib';
 
 /**
  * Manages the visibility of the Screenshot button in the Quick Settings menu.
@@ -13,21 +20,21 @@ export class ScreenshotButtonModule {
         this._settings = settings;
         this._button = null;
         this._signalId = null;
-        this._timeoutId = null; // To store the timeout ID
+        this._timeoutId = null;
     }
 
     enable() {
-        // Connect the settings toggle *immediately*.
         this._signalId = this._settings.connect(
             'changed::hide-screenshot-button',
             () => this._updateVisibility()
         );
 
-        // Wait 1.5 seconds for the shell to stabilize before searching
+        // Wait for the shell to stabilize before searching
+        // for the button to avoid a startup race condition
         this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1500, () => {
             this._findAndToggleButton();
-            this._timeoutId = null; // Clear the ID
-            return GLib.SOURCE_REMOVE; // Stop the timeout
+            this._timeoutId = null;
+            return GLib.SOURCE_REMOVE;
         });
     }
 
@@ -37,13 +44,13 @@ export class ScreenshotButtonModule {
             this._signalId = null;
         }
 
-        // If the timeout is still pending, cancel it
+        // If enable() is still waiting, cancel the pending timeout
         if (this._timeoutId) {
             GLib.source_remove(this._timeoutId);
             this._timeoutId = null;
         }
 
-        // Re-show the button if we found it
+        // Always restore visibility on disable
         if (this._button) {
             this._button.visible = true;
         }
@@ -52,7 +59,7 @@ export class ScreenshotButtonModule {
     }
 
     /**
-     * Finds the button using the known-correct search path and updates visibility.
+     * Finds the button and updates visibility.
      */
     _findAndToggleButton() {
         if (this._button) {
@@ -63,7 +70,7 @@ export class ScreenshotButtonModule {
         try {
             const quickSettings = Main.panel.statusArea.quickSettings;
 
-            // This is the known-correct path we found: _system -> _systemItem -> child
+            // This is the fragile path to the button's parent
             const systemItemChild = quickSettings._system?._systemItem?.child;
             
             if (!systemItemChild) {
@@ -73,16 +80,14 @@ export class ScreenshotButtonModule {
             for (const child of systemItemChild.get_children()) {
                 if (child.constructor.name === 'ScreenshotItem') {
                     this._button = child;
-                    break; // Found it, stop looping
+                    break;
                 }
             }
 
-            // --- Final check ---
             if (this._button) {
-                this._updateVisibility(); // Set its initial state
+                this._updateVisibility();
             }
         } catch (e) {
-            // Error finding button, do nothing.
             this._button = null;
         }
     }

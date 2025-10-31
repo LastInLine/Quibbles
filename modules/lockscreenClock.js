@@ -1,7 +1,10 @@
 // Quibbles - Copyright (C) 2025 LastInLine - See LICENSE file for details.
 
 /**
- * Allows the user to specify the lockscreen clock font.
+ * Lockscreen Clock Feature
+ *
+ * This file contains all the logic for allowing
+ * the user to specify the lockscreen clock font.
  */
  
 'use strict';
@@ -13,12 +16,17 @@ export default class LockscreenClock {
     
     _settings = null;
     _timeLabel = null;
+    // Caches the clock's original CSS to restore it on disable
     _originalTimeStyle = null;
     _settingsChangedId = null;
 
     constructor() {
     }
 
+    /**
+     * Parses the GSettings font string to build
+     * a CSS string to apply to the time label
+     */
     _applyStyle() {
         if (!this._timeLabel) {
             return;
@@ -44,6 +52,7 @@ export default class LockscreenClock {
         if (css) {
             this._timeLabel.set_style(css);
         } else {
+            // If 'font-desc' is empty, revert to the original system style
             this._timeLabel.set_style(this._originalTimeStyle);
         }
     }
@@ -52,27 +61,33 @@ export default class LockscreenClock {
         this._settings = settings;
         
         try {
+            // Nested path to the internal clock widget
             const clock = Main.screenShield._dialog._clock;
             
             if (clock && clock._time) {
                 this._timeLabel = clock._time;
-                
+                // Save the original style before we modify it
                 this._originalTimeStyle = this._timeLabel.get_style() || '';
                 
                 this._settingsChangedId = this._settings.connect('changed::font-desc', () => {
                     this._applyStyle();
                 });
 
+                // Apply the style once on load
                 this._applyStyle();
                 
             }
-            
+
         } catch (e) {
+            // This will fail if the internal GNOME Shell path
+            // `Main.screenShield._dialog._clock._time` changes.
+            // We catch and swallow the error so it doesn't crash the shell.            
         }
     }
 
     disable() {
         try {
+            // Always restore the original CSS style on disable
             if (this._timeLabel) {
                 this._timeLabel.set_style(this._originalTimeStyle);
             }
@@ -86,7 +101,6 @@ export default class LockscreenClock {
         } catch (e) {
         }
 
-        // Clean up
         this._timeLabel = null;
         this._originalTimeStyle = null;
         this._settings = null;

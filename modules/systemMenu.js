@@ -1,6 +1,13 @@
 // Quibbles - Copyright (C) 2025 LastInLine - See LICENSE file for details.
 // Contains logic adapted from Tweaks-system-menu by Philippe Troin (F-i-f)
 
+/**
+ * System Menu Feature
+ *
+ * This file contains all the logic for adding shortcut
+ * buttons in the system section of the quick settings menu.
+ */
+
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Shell from 'gi://Shell';
@@ -42,12 +49,12 @@ export class SystemMenuModule {
 
         this._appsChangedId = null;
         this._posChangedId = null;
-        
-        this._originalSettingsButton = null; // To store the original button
+        // Store the original button
+        this._originalSettingsButton = null;
     }
 
     enable() {
-        // We use a 1.5s delay to ensure the shell is ready
+        // Add a delay to avoid a startup race condition
         this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1500, () => {
             this._initialize();
             this._timeoutId = null;
@@ -62,18 +69,16 @@ export class SystemMenuModule {
                 return;
             }
             
-            // --- NEW: Find and hide the original Settings button ---
+            // --- Find and hide the original Settings button ---
             const children = this._systemItemChild.get_children();
             for (const child of children) {
-                // Find the button by its class name
                 if (child.constructor.name === 'SettingsItem') {
                     this._originalSettingsButton = child;
                     this._originalSettingsButton.visible = false;
                     break;
                 }
             }
-            // --- END NEW ---
-
+            
             this._appsChangedId = this._settings.connect(
                 'changed::system-menu-apps',
                 () => this._onApplicationsChange()
@@ -86,7 +91,7 @@ export class SystemMenuModule {
             this._onApplicationsChange();
 
         } catch (e) {
-            // Fails silently if an error occurs
+            // Fails silently if the internal shell structure changes
         }
     }
 
@@ -110,12 +115,11 @@ export class SystemMenuModule {
         }
         this._launcherButtons.clear();
         
-        // --- NEW: Restore the original Settings button ---
+        // --- Restore the original Settings button ---
         if (this._originalSettingsButton) {
             this._originalSettingsButton.visible = true;
             this._originalSettingsButton = null;
         }
-        // --- END NEW ---
         
         this._systemItemChild = null;
     }
@@ -125,7 +129,6 @@ export class SystemMenuModule {
             this._systemItemChild.remove_child(button);
             button.destroy();
         } catch (e) {
-            // Fails silently
         }
     }
 
@@ -136,7 +139,6 @@ export class SystemMenuModule {
         const wantedApps = this._settings.get_strv('system-menu-apps');
         const wantedAppsSet = new Set(wantedApps);
 
-        // Remove unwanted buttons
         for (const appId of this._launcherButtons.keys()) {
             if (!wantedAppsSet.has(appId)) {
                 this._removeAppLauncher(appId, this._launcherButtons.get(appId));
@@ -144,10 +146,9 @@ export class SystemMenuModule {
             }
         }
 
-        // Add new buttons
         for (const appId of wantedApps) {
             if (this._launcherButtons.has(appId)) {
-                continue; // Already exists
+                continue;
             }
 
             const appInfo = Shell.AppSystem.get_default().lookup_app(appId);
@@ -166,19 +167,13 @@ export class SystemMenuModule {
             return;
         }
 
-        // First, move all our buttons to the end
         const endPos = this._systemItemChild.get_n_children() - 1;
         for (const button of this._launcherButtons.values()) {
             this._systemItemChild.set_child_at_index(button, endPos);
         }
 
-        // --- UPDATED: Simplified positioning ---
-        // We no longer search for the 'SettingsItem' button.
-        // We just use the position value from GSettings.
-        // The GSettings default should be 1 (or 0 if you want)
         let position = this._settings.get_int('system-menu-position');
         
-        // Re-insert our buttons at the calculated position, in order
         const appIds = this._settings.get_strv('system-menu-apps');
         for (const appId of appIds) {
             const button = this._launcherButtons.get(appId);

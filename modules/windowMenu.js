@@ -3,7 +3,8 @@
 /**
  * Window Menu Feature
  *
- * Show/hide window context menu items based on user settings.
+ * This file contains all the logic for allowing the user
+ * to specify visible window titlebar context menu items.
  */
 
 import { WindowMenu } from 'resource:///org/gnome/shell/ui/windowMenu.js';
@@ -17,9 +18,7 @@ import { WindowMenu } from 'resource:///org/gnome/shell/ui/windowMenu.js';
 let originalBuildMenu = null;
 
 export class WindowMenuFeature {
-    /**
-     * @param {Gio.Settings} settings - The extension's settings object.
-     */
+
     constructor(settings) {
         this._settings = settings;
         this._settingsConnection = null;
@@ -29,20 +28,19 @@ export class WindowMenuFeature {
      * Enables the feature, applies the patch, and connects to settings.
      */
     enable() {
-        // "Monkey-patch" the window menu to customize its items.
-        // This is done only once per session to prevent errors.
+        // Patch the window menu's build function, storing the original.
+        // This is only done once, as the global flag persists.
         if (originalBuildMenu === null) {
             originalBuildMenu = WindowMenu.prototype._buildMenu;
             
-            // We pass 'this._settings' into the new function's scope
-            // so it can be accessed when the patch runs.
+            // Pass settings into the new function's scope
             const settings = this._settings;
             
             WindowMenu.prototype._buildMenu = function(...args) {
-                // First, run the original function to build the menu.
+                // Run the original function to build the menu
                 originalBuildMenu.apply(this, args);
                 
-                // Then, apply our modification to hide/show items based on settings.
+                // Apply our modification to hide/show items based on settings
                 const visibleItems = settings.get_strv('visible-items');
                 const visibleSet = new Set(visibleItems);
                 
@@ -54,9 +52,7 @@ export class WindowMenuFeature {
             };
         }
 
-        // We must connect to the setting so that if the user
-        // changes it in prefs, the menu is immediately updated.
-        // We do this by "forcing" the menu to rebuild.
+        // Connect to the setting to force a rebuild if items are changed
         this._settingsConnection = this._settings.connect(
             'changed::visible-items',
             () => this._forceMenuRebuild()
@@ -67,13 +63,12 @@ export class WindowMenuFeature {
      * Disables the feature and restores the original menu function.
      */
     disable() {
-        // Disconnect our settings listener.
         if (this._settingsConnection) {
             this._settings.disconnect(this._settingsConnection);
             this._settingsConnection = null;
         }
 
-        // Restore the original window menu function if it was patched by us.
+        // Restore the original window menu function if it was changed
         if (originalBuildMenu) {
             WindowMenu.prototype._buildMenu = originalBuildMenu;
             originalBuildMenu = null;
@@ -81,14 +76,10 @@ export class WindowMenuFeature {
     }
 
     /**
-     * Forces all window menus to rebuild themselves.
-     * This is called when the 'visible-items' setting changes.
-     * It works by finding all open windows and telling their
-     * menus to... well, rebuild.
+     * Forces all active window menus to rebuild, applying
+     * the new 'visible-items' setting.
      */
     _forceMenuRebuild() {
-        // This iterates over all actors (UI elements) and finds
-        // all open windows, then finds their menus and rebuilds them.
         global.get_window_actors().forEach(actor => {
             let window = actor.get_meta_window();
             if (window && window._windowMenuManager) {
