@@ -1,3 +1,5 @@
+![](icons/quibbles-logo-symbolic.svg)
+
 # Quibbles
 
 A personal project to alleviate annoyances from the GNOME shell, particularly when used with the superb [PaperWM](https://github.com/paperwm/PaperWM) window manager

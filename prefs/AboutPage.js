@@ -8,6 +8,7 @@
 import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
 import Gio from 'gi://Gio';
+import Gdk from 'gi://Gdk';
 import { gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 export class AboutPage {
@@ -20,43 +21,55 @@ export class AboutPage {
             iconName: 'help-about-symbolic'
         });
 
+        const iconTheme = Gtk.IconTheme.get_for_display(Gdk.Display.get_default());
+        iconTheme.add_search_path(extension.path + '/icons');
+        
         // --- GROUP 1: Centered Header ---
         const headerGroup = new Adw.PreferencesGroup();
         this.page.add(headerGroup);
 
-        // This Box will hold and center the labels
+        // This Box will hold and center the icon and labels
         const headerBox = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
-            halign: Gtk.Align.CENTER, // Center the box itself
+            halign: Gtk.Align.CENTER,
             valign: Gtk.Align.CENTER,
-            spacing: 12, // Space between title and description
-            margin_top: 24,
-            margin_bottom: 24,
+            spacing: 12,  // Space between title and description
         });
 
-        // The main extension title
+        // --- Load and add the icon ---
+        const icon = new Gtk.Image({
+            icon_name: 'quibbles-logo-symbolic',
+            pixel_size: 200,
+            margin_bottom: 12,
+        });
+        headerBox.append(icon);
+
+
+        // --- Add the title ---
         const titleLabel = new Gtk.Label({
             label: metadata.name,
             halign: Gtk.Align.CENTER,
-            // Use 'title-1' CSS class to make it large
             css_classes: ['title-1'], 
         });
         headerBox.append(titleLabel);
 
-        // The extension description
+
+        // --- Add the description ---
         const descriptionLabel = new Gtk.Label({
             label: metadata.description,
             halign: Gtk.Align.CENTER,
-            wrap: true, // Allow description to wrap to multiple lines
-            css_classes: ['body'], // Standard body text style
+            wrap: true,
+            css_classes: ['body'],
         });
         headerBox.append(descriptionLabel);
-        
-        // A 'container' row is needed to add a custom widget to a group
-        const headerRow = new Adw.ActionRow();
-        headerRow.set_child(headerBox);
-        headerGroup.add(headerRow);
 
+         const clamp = new Adw.Clamp({
+            child: headerBox,
+            margin_top: 96,
+            margin_bottom: 24,
+        });
+
+        headerGroup.add(clamp);
 
         // --- GROUP 2: Details & Links ---
         const detailsGroup = new Adw.PreferencesGroup();
@@ -65,12 +78,10 @@ export class AboutPage {
         // --- Version Row ---
         const versionRow = new Adw.ActionRow({
             title: _('Version'),
-            // Make the row un-clickable
             activatable: false,
             selectable: false, 
         });
         
-        // Add the version number as a suffix widget on the right side
         versionRow.add_suffix(new Gtk.Label({
             label: metadata['version-name'],
             valign: Gtk.Align.CENTER,
@@ -82,20 +93,17 @@ export class AboutPage {
         const homepageRow = new Adw.ActionRow({
             title: _('GitHub'),
             subtitle: extension.metadata.url,
-            activatable: true, // Make the row clickable
+            activatable: true,
         });
         
-        // --- Add icon ---
         homepageRow.add_suffix(new Gtk.Image({
-            icon_name: 'pan-end-symbolic',
+            icon_name: 'external-link-symbolic',
             valign: Gtk.Align.CENTER,
         }));
         
-        // Connect the click event to open the URL
         homepageRow.connect('activated', () => {
             Gio.AppInfo.launch_default_for_uri(metadata.url, null);
         });
         detailsGroup.add(homepageRow);
     }
 }
-
