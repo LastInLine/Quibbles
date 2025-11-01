@@ -1,4 +1,7 @@
-![](icons/quibbles-logo-symbolic.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./icons/quibbles-logo-dark.svg">
+  <img alt="Quibbles Logo" src="./icons/quibbles-logo-light.svg" width="200">
+</picture>
 
 # Quibbles
 
