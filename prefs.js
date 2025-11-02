@@ -16,8 +16,7 @@ import { AboutPage } from './prefs/AboutPage.js';
 
 export default class QuibblesPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
-        // Default size for the window
-        window.set_default_size(720, 930);
+        window.set_default_size(870, 1000); // Default size for the window
 
         const settings = this.getSettings();
         

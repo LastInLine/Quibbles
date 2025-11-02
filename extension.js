@@ -33,6 +33,7 @@ export default class QuibblesExtension extends Extension {
         this._indicatorFeature = null;
         this._screenshotButtonFeature = null;
         this._systemMenuFeature = null;
+        this._windowMenuToggleSignalId = null; // <-- NEW
 
         // --- Properties for Lock Screen ---
         this._lockSettings = null; 
@@ -57,7 +58,7 @@ export default class QuibblesExtension extends Extension {
         }
 
         // Connect to the master toggle for the unblank feature
-        this._unblankToggleSignalId = this._lockSettings.connect(
+        this._unblankToggleSignalId = this._lockSettings.connect( //
             'changed::enable-unblank',
             () => this._checkUnblankState()
         );
@@ -109,6 +110,26 @@ export default class QuibblesExtension extends Extension {
         this._lockSettings?.run_dispose();
         this._lockSettings = null;
     }
+    
+    /**
+     * Checks the 'enable-window-menu' setting and enables/disables
+     * the window menu module as needed.
+     */
+    _checkWindowMenuState() {
+        if (this._settings.get_boolean('enable-window-menu')) {
+            if (!this._windowMenuFeature) {
+                try {
+                    this._windowMenuFeature = new WindowMenuFeature(this._settings);
+                    this._windowMenuFeature.enable();
+                } catch(e) { console.error(`Quibbles: Failed to enable WindowMenuFeature: ${e}`); }
+            }
+        } else {
+            if (this._windowMenuFeature) {
+                this._windowMenuFeature.disable();
+                this._windowMenuFeature = null;
+            }
+        }
+    }
 
     // --- User Session Handlers ---
     _enableUserSession() {
@@ -126,10 +147,12 @@ export default class QuibblesExtension extends Extension {
             this._activitiesFeature.enable();
         } catch(e) { /* Fail silently */ }
 
-        try {
-            this._windowMenuFeature = new WindowMenuFeature(this._settings);
-            this._windowMenuFeature.enable();
-        } catch(e) { /* Fail silently */ }
+        this._windowMenuToggleSignalId = this._settings.connect(
+            'changed::enable-window-menu',
+            () => this._checkWindowMenuState()
+        );
+
+        this._checkWindowMenuState();
 
         try {
             this._indicatorFeature = new WorkspaceIndicatorFeature(this._settings);
@@ -160,11 +183,15 @@ export default class QuibblesExtension extends Extension {
             this._activitiesFeature = null;
         }
 
-        if (this._windowMenuFeature) {
+        if (this._windowMenuToggleSignalId) {
+            this._settings.disconnect(this._windowMenuToggleSignalId);
+            this._windowMenuToggleSignalId = null;
+        }
+        if (this._windowMenuFeature) { //
             this._windowMenuFeature.disable();
             this._windowMenuFeature = null;
         }
-
+        
         if (this._indicatorFeature) {
             this._indicatorFeature.disable();
             this._indicatorFeature = null;
@@ -221,4 +248,3 @@ export default class QuibblesExtension extends Extension {
         this._disableUserSession();
     }
 }
-

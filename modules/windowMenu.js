@@ -9,13 +9,9 @@
 
 import { WindowMenu } from 'resource:///org/gnome/shell/ui/windowMenu.js';
 
-/**
- * A session-wide global variable to store the original, un-patched
- * version of the window menu's build function. This must be
- * defined outside the class so it persists across enable/disable
- * cycles (e.g., screen lock).
- */
-let originalBuildMenu = null;
+// A unique key to store our patch on the prototype.
+// This avoids global variables and extension conflicts.
+const ORIGINAL_BUILD_MENU_KEY = '_quibblesOriginalBuildMenu';
 
 export class WindowMenuFeature {
 
@@ -28,29 +24,37 @@ export class WindowMenuFeature {
      * Enables the feature, applies the patch, and connects to settings.
      */
     enable() {
-        // Patch the window menu's build function, storing the original.
-        // This is only done once, as the global flag persists.
-        if (originalBuildMenu === null) {
-            originalBuildMenu = WindowMenu.prototype._buildMenu;
+        if (WindowMenu.prototype[ORIGINAL_BUILD_MENU_KEY]) {
+            console.log('Quibbles: WindowMenu already patched. Skipping.');
+            return;
+            }
+
+        // Save the original function onto the prototype under a unique key
+        WindowMenu.prototype[ORIGINAL_BUILD_MENU_KEY] = WindowMenu.prototype._buildMenu;
+        
+        // Pass settings into the new function's scope
+        const settings = this._settings;
+        
+        WindowMenu.prototype._buildMenu = function(...args) {
+            if (this._quibblesIsBuilding) return;
             
-            // Pass settings into the new function's scope
-            const settings = this._settings;
+            this._quibblesIsBuilding = true;
             
-            WindowMenu.prototype._buildMenu = function(...args) {
-                // Run the original function to build the menu
-                originalBuildMenu.apply(this, args);
-                
-                // Apply our modification to hide/show items based on settings
-                const visibleItems = settings.get_strv('visible-items');
-                const visibleSet = new Set(visibleItems);
-                
-                this._getMenuItems().forEach(item => {
-                    if (item.label) {
-                        item.visible = visibleSet.has(item.label.text);
-                    }
-                });
-            };
-        }
+            // Call the original function from the prototype
+            WindowMenu.prototype[ORIGINAL_BUILD_MENU_KEY].apply(this, args);
+            
+            // Hide/show items based on settings
+            const visibleItems = settings.get_strv('visible-items');
+            const visibleSet = new Set(visibleItems);
+            
+            this._getMenuItems().forEach(item => {
+                if (item.label) {
+                    item.visible = visibleSet.has(item.label.text);
+                }
+            });
+
+            this._quibblesIsBuilding = false;
+        };
 
         // Connect to the setting to force a rebuild if items are changed
         this._settingsConnection = this._settings.connect(
@@ -68,10 +72,10 @@ export class WindowMenuFeature {
             this._settingsConnection = null;
         }
 
-        // Restore the original window menu function if it was changed
-        if (originalBuildMenu) {
-            WindowMenu.prototype._buildMenu = originalBuildMenu;
-            originalBuildMenu = null;
+        if (WindowMenu.prototype[ORIGINAL_BUILD_MENU_KEY]) {
+            WindowMenu.prototype._buildMenu = WindowMenu.prototype[ORIGINAL_BUILD_MENU_KEY];
+            
+            delete WindowMenu.prototype[ORIGINAL_BUILD_MENU_KEY];
         }
     }
 
@@ -83,9 +87,12 @@ export class WindowMenuFeature {
         global.get_window_actors().forEach(actor => {
             let window = actor.get_meta_window();
             if (window && window._windowMenuManager) {
-                window._windowMenuManager.menu._buildMenu();
+                try {
+                    window._windowMenuManager.menu._buildMenu();
+                } catch (e) {
+                    console.log(`Quibbles: Failed to force menu rebuild: ${e}`);
+                }
             }
         });
     }
 }
-

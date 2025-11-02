@@ -2,13 +2,15 @@
 <schemalist>
   <schema id="org.gnome.shell.extensions.quibbles" path="/org/gnome/shell/extensions/quibbles/">
 
+    <!-- === Workspace Management === -->
+
     <!-- Workspace indicator -->
     <key name="enable-workspace-indicator" type="b">
       <default>false</default>
       <summary>Enable the custom workspace indicator.</summary>
     </key>
     
-    <!-- Workspace hiding key -->
+    <!-- Workspace menu item hiding -->
     <key name="hide-workspace-indices" type="s">
       <default>''</default>
       <summary>A comma-separated list of workspace indices to hide.</summary>
@@ -41,39 +43,46 @@
         <choice value='hidden'/>
       </choices>
     </key>
-
-    <!-- Mouse barrier remover -->
-    <key name="remove-mouse-barrier" type="b">
+    
+    <!-- === Window Menu Tweak === -->
+    
+    <!-- Naster switch -->
+    <key name="enable-window-menu" type="b">
       <default>true</default>
-      <summary>Remove top-right corner mouse barrier.</summary>
+      <summary>Enable Window Menu Modifications</summary>
+      <description>A master switch to enable or disable all window titlebar context menu modifications.</description>
     </key>
     
-    <!-- Window Menu Tweak -->
+    <!-- Visible items -->
     <key name="visible-items" type="as">
       <default>["Scratch", "Take Screenshot", "Hide", "Maximize", "Move", "Resize", "Always on Top", "Always on Visible Workspace", "Move to Workspace Left", "Move to Workspace Right", "Move to Monitor Left", "Move to Monitor Right", "Close"]</default>
       <summary>The window menu items to display.</summary>
     </key>
     
-    <!-- === Lockscreen Clock === -->
+    <!-- === Lockscreen mods === -->
+    
+    <!-- Lockscreen font -->
     <key name="font-desc" type="s">
       <default>"Adwaita Sans 200 96"</default>
       <summary>Lockscreen Clock Font</summary>
       <description>The Pango font description string for the lockscreen clock.</description>
     </key>
 
-    <!-- === Lockscreen Unblank === -->
+    <!-- Lockscreen Unblank master switch -->
     <key name="enable-unblank" type="b">
       <default>true</default>
       <summary>Enable the "Unblank Lockscreen" feature</summary>
       <description>If true, the lock screen will not fade to black.</description>
     </key>
-
+    
+    <!-- Lockscreen Unblank on AC -->
     <key name="power" type="b">
       <default>true</default>
       <summary>Only unblank when on AC power</summary>
       <description>If true, the screen will still blank when the device is on battery power.</description>
     </key>
     
+    <!-- Lockscreen Unblank timeout-->
     <key name="time" type="i">
       <default>0</default>
       <summary>Screen blank timeout (in seconds)</summary>
@@ -81,12 +90,18 @@
     </key>
 
     <!-- === Quick Settings === -->
+           
+    <key name="remove-mouse-barrier" type="b">
+      <default>true</default>
+      <summary>Remove top-right corner mouse barrier.</summary>
+    </key>
+    
     <key name="hide-screenshot-button" type="b">
       <default>false</default>
       <summary>Hide the Screenshot button in Quick Settings.</summary>
     </key>
     
-    <!-- === System Menu Tweaks === -->
+    <!-- System Menu launcher -->
     <key name="system-menu-apps" type="as">
       <default>['gnome-control-center.desktop']</default>
       <summary>Applications to show in the system menu.</summary>

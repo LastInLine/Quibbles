@@ -28,7 +28,7 @@ export class AboutPage {
         const headerGroup = new Adw.PreferencesGroup();
         this.page.add(headerGroup);
 
-        // This Box will hold and center the icon and labels
+        // This Box holds and centers the icon and labels
         const headerBox = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
             halign: Gtk.Align.CENTER,
@@ -40,7 +40,7 @@ export class AboutPage {
         const icon = new Gtk.Image({
             icon_name: 'quibbles-logo-symbolic',
             pixel_size: 200,
-            margin_bottom: 12,
+            margin_bottom: 36,
         });
         headerBox.append(icon);
 
@@ -65,7 +65,7 @@ export class AboutPage {
 
          const clamp = new Adw.Clamp({
             child: headerBox,
-            margin_top: 96,
+            margin_top: 36, // Distance from the top for everything
             margin_bottom: 24,
         });
 

@@ -6,6 +6,7 @@
 
 import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
+import Gio from 'gi://Gio';
 import { gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 // This is the full, canonical list of all possible window menu items.
@@ -31,7 +32,22 @@ export class WindowMenuPage {
             title: _('Window Menu'),
             iconName: 'open-menu-symbolic'
         });
-        
+
+        const masterGroup = new Adw.PreferencesGroup();
+        this.page.add(masterGroup);
+
+        const masterRow = new Adw.SwitchRow({
+            title: _('Enable Window Menu Modifications'),
+        });
+        masterGroup.add(masterRow);
+
+        settings.bind(
+            'enable-window-menu',
+            masterRow,
+            'active',
+            Gio.SettingsBindFlags.DEFAULT
+        );
+
         // --- GROUP 1: Menu options ---
         const group = new Adw.PreferencesGroup({
             title: _('Menu options'),
@@ -39,6 +55,13 @@ export class WindowMenuPage {
         });
         this.page.add(group);
         
+        settings.bind(
+            'enable-window-menu',
+            group,
+            'sensitive',
+            Gio.SettingsBindFlags.DEFAULT
+        );
+
         ALL_MENU_ITEMS.forEach(itemName => {
             const row = new Adw.ActionRow({ title: _(itemName) });
             group.add(row);
@@ -60,4 +83,3 @@ export class WindowMenuPage {
         });
     }
 }
-
