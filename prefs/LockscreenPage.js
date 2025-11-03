@@ -47,7 +47,7 @@ export class LockscreenPage {
         // --- GROUP 2: Lockscreen Unblank ---
         const unblankGroup = new Adw.PreferencesGroup({
             title: _('Lockscreen Unblank'),
-            description: _('Prevents the lock screen from fading to black.'),
+            description: _('Delays or prevents the lock screen from fading to black.'),
         });
         this.page.add(unblankGroup);
 

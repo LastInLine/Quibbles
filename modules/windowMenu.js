@@ -9,56 +9,64 @@
 
 import { WindowMenu } from 'resource:///org/gnome/shell/ui/windowMenu.js';
 
-// A unique key to store our patch on the prototype.
-// This avoids global variables and extension conflicts.
-const ORIGINAL_BUILD_MENU_KEY = '_quibblesOriginalBuildMenu';
+/**
+ * A session-wide global variable to store the original, un-patched
+ * version of the window menu's build function. This must be
+ * defined outside the class so it persists across enable/disable
+ * cycles (e.g., screen lock).
+ */
+let originalBuildMenu = null;
 
 export class WindowMenuFeature {
-
     constructor(settings) {
         this._settings = settings;
         this._settingsConnection = null;
+        this._masterToggleConnection = null; // <-- NEW
     }
 
     /**
      * Enables the feature, applies the patch, and connects to settings.
      */
     enable() {
-        if (WindowMenu.prototype[ORIGINAL_BUILD_MENU_KEY]) {
-            console.log('Quibbles: WindowMenu already patched. Skipping.');
-            return;
-            }
-
-        // Save the original function onto the prototype under a unique key
-        WindowMenu.prototype[ORIGINAL_BUILD_MENU_KEY] = WindowMenu.prototype._buildMenu;
-        
-        // Pass settings into the new function's scope
-        const settings = this._settings;
-        
-        WindowMenu.prototype._buildMenu = function(...args) {
-            if (this._quibblesIsBuilding) return;
+        // Patch the window menu's build function, storing the original.
+        // This is only done once, as the global flag persists.
+        if (originalBuildMenu === null) {
+            originalBuildMenu = WindowMenu.prototype._buildMenu;
             
-            this._quibblesIsBuilding = true;
+            // Pass settings into the new function's scope
+            const settings = this._settings;
             
-            // Call the original function from the prototype
-            WindowMenu.prototype[ORIGINAL_BUILD_MENU_KEY].apply(this, args);
-            
-            // Hide/show items based on settings
-            const visibleItems = settings.get_strv('visible-items');
-            const visibleSet = new Set(visibleItems);
-            
-            this._getMenuItems().forEach(item => {
-                if (item.label) {
-                    item.visible = visibleSet.has(item.label.text);
+            WindowMenu.prototype._buildMenu = function(...args) {
+                // Master switch logic
+                if (!settings.get_boolean('enable-window-menu')) {
+                    originalBuildMenu.apply(this, args);
+                    return;
                 }
-            });
 
-            this._quibblesIsBuilding = false;
-        };
+                // Run the original function to build the menu
+                originalBuildMenu.apply(this, args);
+                
+                // Apply modification to hide/show items based on settings
+                const visibleItems = settings.get_strv('visible-items');
+                const visibleSet = new Set(visibleItems);
+                
+                this._getMenuItems().forEach(item => {
+                    if (item.label) {
+                        item.visible = visibleSet.has(item.label.text);
+                    }
+                });
+            };
+        }
 
         // Connect to the setting to force a rebuild if items are changed
         this._settingsConnection = this._settings.connect(
             'changed::visible-items',
+            () => this._forceMenuRebuild()
+        );
+
+        // Connect to the 'enable-window-menu' master switch
+        this._masterToggleConnection = this._settings.connect(
+            'changed::enable-window-menu',
             () => this._forceMenuRebuild()
         );
     }
@@ -72,10 +80,15 @@ export class WindowMenuFeature {
             this._settingsConnection = null;
         }
 
-        if (WindowMenu.prototype[ORIGINAL_BUILD_MENU_KEY]) {
-            WindowMenu.prototype._buildMenu = WindowMenu.prototype[ORIGINAL_BUILD_MENU_KEY];
-            
-            delete WindowMenu.prototype[ORIGINAL_BUILD_MENU_KEY];
+        if (this._masterToggleConnection) {
+            this._settings.disconnect(this._masterToggleConnection);
+            this._masterToggleConnection = null;
+        }
+
+        // Restore the original window menu function if it was changed
+        if (originalBuildMenu) {
+            WindowMenu.prototype._buildMenu = originalBuildMenu;
+            originalBuildMenu = null;
         }
     }
 
@@ -87,11 +100,7 @@ export class WindowMenuFeature {
         global.get_window_actors().forEach(actor => {
             let window = actor.get_meta_window();
             if (window && window._windowMenuManager) {
-                try {
-                    window._windowMenuManager.menu._buildMenu();
-                } catch (e) {
-                    console.log(`Quibbles: Failed to force menu rebuild: ${e}`);
-                }
+                window._windowMenuManager.menu._buildMenu();
             }
         });
     }

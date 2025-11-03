@@ -173,35 +173,30 @@ export class QuickSettingsPage {
         // --- GROUP 1: Mouse Barrier ---
         const barrierGroup = new Adw.PreferencesGroup({
             title: _('Mouse Barrier'),
+            description: _('Fence to the right of Quick Settings icons when a second monitor is to the right.')
         });
         this.page.add(barrierGroup);
 
         barrierGroup.add(createSwitch(
             _('Remove Top-Right Mouse Barrier'),
-            _('A shell restart is required to restore barrier once removed.'),
+            _('Lock and unlock to restore barrier once removed.'),
             settings,
             'remove-mouse-barrier'
         ));
 
-        // --- GROUP 2: System Buttons Group ---
-        const buttonsGroup = new Adw.PreferencesGroup({
-            title: _('System Buttons'),
+        // --- GROUP 2: System Menu Apps ---
+       const positionGroup = new Adw.PreferencesGroup({
+            title: _('System Menu Apps'),
+            description: _('Application icons to appear in the system menu.'),
         });
-        this.page.add(buttonsGroup);
-
-        buttonsGroup.add(createSwitch(
+        this.page.add(positionGroup);
+        
+            positionGroup.add(createSwitch(
             _('Hide Screenshot Button'),
-            _('Removes the screenshot button from the Quick Settings menu.'),
+            null,
             settings,
             'hide-screenshot-button'
         ));
-        
-        // --- GROUP 3: System Menu App Launcher Position ---
-        const positionGroup = new Adw.PreferencesGroup({
-            title: _('System Menu App Launchers'),
-            description: _('List of applications to display in the system menu.'),
-        });
-        this.page.add(positionGroup);
         
         const positionRow = new Adw.ActionRow({
             title: _('Launcher Position'),
@@ -254,7 +249,7 @@ export class QuickSettingsPage {
         // Add the new row to the group
         positionGroup.add(positionRow);
         
-        // --- GROUP 4: System Menu Applications ---
+        // --- GROUP 3: System Menu Applications ---
         // This adds the App Picker as its own, separate group.
         this.page.add(new SystemMenuAppsPicker(settings));
     }

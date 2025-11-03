@@ -2,6 +2,10 @@
 
 /**
  * Main logic for the "Quibbles" GNOME Shell Extension.
+ *
+ * 1. Stable features are loaded once in the main enable() and disable() functions
+ * 2. Volatile features are handled by the session-mode functions
+ * 3. Lock-screen-only features (clock, unblank) are handled by the session-mode functions
  */
 
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
@@ -27,13 +31,12 @@ export default class QuibblesExtension extends Extension {
         
         // --- Properties for User Session ---
         this._settings = null;
-        this._barrierFeature = null;
-        this._activitiesFeature = null;
+        this._barrierFeature = null; // Volatile
+        this._activitiesFeature = null; // Volatile
         this._windowMenuFeature = null;
         this._indicatorFeature = null;
         this._screenshotButtonFeature = null;
-        this._systemMenuFeature = null;
-        this._windowMenuToggleSignalId = null; // <-- NEW
+        this._systemMenuFeature = null; // Volatile
 
         // --- Properties for Lock Screen ---
         this._lockSettings = null; 
@@ -43,43 +46,35 @@ export default class QuibblesExtension extends Extension {
         
         // --- Session Management ---
         this._sessionId = null;
+        this._isStartup = true; // Tracks the first run
+        this._unlockDialog = null;
+        this._unlockDialogDestroyId = null;
     }
 
     // --- Lock Screen Handlers ---
 
     _enableLockScreen() {
-        // Get settings just for the lockscreen features.
         this._lockSettings = this.getSettings();
 
-        // Enable clock
         if (!this._clockModule) {
             this._clockModule = new LockscreenClock();
             this._clockModule.enable(this._lockSettings);
         }
 
-        // Connect to the master toggle for the unblank feature
-        this._unblankToggleSignalId = this._lockSettings.connect( //
+        this._unblankToggleSignalId = this._lockSettings.connect(
             'changed::enable-unblank',
             () => this._checkUnblankState()
         );
-        
-        // Run the check once to set the initial state
         this._checkUnblankState();
     }
 
-    /**
-     * Checks the 'enable-unblank' setting and enables/disables
-     * the unblank module as needed.
-     */
     _checkUnblankState() {
         if (this._lockSettings.get_boolean('enable-unblank')) {
-            // Setting is ON, so enable the module if it's not already
             if (!this._unblankModule) {
                 this._unblankModule = new LockscreenUnblank();
                 this._unblankModule.enable(this._lockSettings);
             }
         } else {
-            // Setting is OFF, so disable the module if it's running
             if (this._unblankModule) {
                 this._unblankModule.disable();
                 this._unblankModule = null;
@@ -88,71 +83,103 @@ export default class QuibblesExtension extends Extension {
     }
 
     _disableLockScreen() {
-        // Disconnect the signal handler
+        // Clean up destroy signal handler
+        if (this._unlockDialog && this._unlockDialogDestroyId) {
+            this._unlockDialog.disconnect(this._unlockDialogDestroyId);
+            this._unlockDialogDestroyId = null;
+            this._unlockDialog = null;
+        }
+        
         if (this._unblankToggleSignalId) {
             this._lockSettings.disconnect(this._unblankToggleSignalId);
             this._unblankToggleSignalId = null;
         }
-
-        // Disable clock
         if (this._clockModule) {
             this._clockModule.disable();
             this._clockModule = null;
         }
-
-        // Disable unblank
         if (this._unblankModule) {
             this._unblankModule.disable();
             this._unblankModule = null;
         }
-        
-        // Clean up the lockscreen settings object
         this._lockSettings?.run_dispose();
         this._lockSettings = null;
     }
-    
-    /**
-     * Checks the 'enable-window-menu' setting and enables/disables
-     * the window menu module as needed.
-     */
-    _checkWindowMenuState() {
-        if (this._settings.get_boolean('enable-window-menu')) {
-            if (!this._windowMenuFeature) {
-                try {
-                    this._windowMenuFeature = new WindowMenuFeature(this._settings);
-                    this._windowMenuFeature.enable();
-                } catch(e) { console.error(`Quibbles: Failed to enable WindowMenuFeature: ${e}`); }
-            }
-        } else {
-            if (this._windowMenuFeature) {
-                this._windowMenuFeature.disable();
-                this._windowMenuFeature = null;
-            }
-        }
-    }
 
     // --- User Session Handlers ---
-    _enableUserSession() {
-        if (this._settings) return; // Already enabled
 
-        this._settings = this.getSettings();
-        
+    _enableUserSession(isStartup = false) {
+        if (!this._settings) return;
+
         try {
             this._barrierFeature = new MouseBarrierFeature(this._settings);
-            this._barrierFeature.enable();
+            this._barrierFeature.enable(isStartup);
         } catch(e) { /* Fail silently */ }
 
         try {
             this._activitiesFeature = new ActivitiesButtonFeature(this._settings);
-            this._activitiesFeature.enable();
+            this._activitiesFeature.enable(isStartup);
         } catch(e) { /* Fail silently */ }
 
-        this._windowMenuToggleSignalId = this._settings.connect(
-            'changed::enable-window-menu',
-            () => this._checkWindowMenuState()
-        );
+        try {
+            this._systemMenuFeature = new SystemMenuModule(this._settings);
+            this._systemMenuFeature.enable(isStartup);
+        } catch(e) { /* Fail silently */ }
+    }
 
-        this._checkWindowMenuState();
+    _disableUserSession() {
+        if (this._barrierFeature) {
+            this._barrierFeature.disable();
+            this._barrierFeature = null;
+        }
+
+        if (this._activitiesFeature) {
+            this._activitiesFeature.disable();
+            this._activitiesFeature = null;
+        }
+
+        if (this._systemMenuFeature) {
+            this._systemMenuFeature.disable();
+            this._systemMenuFeature = null;
+        }
+    }
+
+    // --- Session Mode Switching Logic ---
+    _onSessionModeChanged(session) {
+        if (session.currentMode === 'unlock-dialog') {
+            // We are on the lock screen
+            this._disableUserSession();
+            this._enableLockScreen();
+
+            // Connect to the unlock dialog's destroy signal
+            // to clean up before it's disposed
+            this._unlockDialog = Main.screenShield._unlockDialog;
+            if (this._unlockDialog) {
+                this._unlockDialogDestroyId = this._unlockDialog.connect('destroy', () => {
+                    this._disableLockScreen();
+                    this._unlockDialog = null;
+                    this._unlockDialogDestroyId = null;
+                });
+            }
+
+        } else {
+            // We are in the user session
+            this._enableUserSession(this._isStartup);
+            this._isStartup = false;
+        }
+    }
+
+    // --- Main Entry/Exit Points ---
+
+    enable() {
+        this._settings = this.getSettings();
+        this._isStartup = true; // Reset startup flag on every enable
+
+        // Load all stable features once
+        try {
+            this._windowMenuFeature = new WindowMenuFeature(this._settings);
+            this._windowMenuFeature.enable();
+        } catch(e) { /* Fail silently */ }
 
         try {
             this._indicatorFeature = new WorkspaceIndicatorFeature(this._settings);
@@ -164,30 +191,28 @@ export default class QuibblesExtension extends Extension {
             this._screenshotButtonFeature.enable();
         } catch(e) { /* Fail silently */ }
         
-        try {
-            this._systemMenuFeature = new SystemMenuModule(this._settings);
-            this._systemMenuFeature.enable();
-        } catch(e) { /* Fail silently */ }
+        // Connect the session mode handler
+        this._sessionId = Main.sessionMode.connect('updated',
+            this._onSessionModeChanged.bind(this));
+        
+        // Run once to set the correct initial state
+        this._onSessionModeChanged(Main.sessionMode);
     }
 
-    _disableUserSession() {
-        if (!this._settings) return; // Already disabled
-
-        if (this._barrierFeature) {
-            this._barrierFeature.disable();
-            this._barrierFeature = null;
+    disable() {
+        // This extension uses 'unlock-dialog' session mode to modify the lock screen
+        // clock font. All UI elements and listeners are cleaned up here.
+        if (this._sessionId) {
+            Main.sessionMode.disconnect(this._sessionId);
+            this._sessionId = null;
         }
 
-        if (this._activitiesFeature) {
-            this._activitiesFeature.disable();
-            this._activitiesFeature = null;
-        }
+        // Clean up session-managed states
+        this._disableLockScreen();
+        this._disableUserSession();
 
-        if (this._windowMenuToggleSignalId) {
-            this._settings.disconnect(this._windowMenuToggleSignalId);
-            this._windowMenuToggleSignalId = null;
-        }
-        if (this._windowMenuFeature) { //
+        // Clean up stable features
+        if (this._windowMenuFeature) {
             this._windowMenuFeature.disable();
             this._windowMenuFeature = null;
         }
@@ -201,50 +226,9 @@ export default class QuibblesExtension extends Extension {
             this._screenshotButtonFeature.disable();
             this._screenshotButtonFeature = null;
         }
-        
-        if (this._systemMenuFeature) {
-            this._systemMenuFeature.disable();
-            this._systemMenuFeature = null;
-        }
 
+        // Clean up settings object
         this._settings?.run_dispose();
         this._settings = null;
-    }
-
-
-    // --- Session Mode Switching Logic ---
-    _onSessionModeChanged(session) {
-        if (session.currentMode === 'unlock-dialog') {
-            // We are on the lock screen
-            this._disableUserSession();
-            this._enableLockScreen();
-        } else {
-            // We are in the user session
-            this._disableLockScreen();
-            this._enableUserSession();
-        }
-    }
-
-    // --- Main Entry/Exit Points ---
-    enable() {
-        this._sessionId = Main.sessionMode.connect('updated',
-            this._onSessionModeChanged.bind(this));
-        
-        // Run once to set the correct initial state
-        this._onSessionModeChanged(Main.sessionMode);
-    }
-
-    disable() {
-        // This extension uses 'unlock-dialog' session mode to modify the lock screen
-        // clock font. All UI elements and listeners are cleaned up here.
-        
-        if (this._sessionId) {
-            Main.sessionMode.disconnect(this._sessionId);
-            this._sessionId = null;
-        }
-
-        // Clean up both states
-        this._disableLockScreen();
-        this._disableUserSession();
     }
 }

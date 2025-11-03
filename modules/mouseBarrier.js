@@ -13,7 +13,7 @@ import GLib from 'gi://GLib';
 /**
  * Global flag to ensure the destructive `barrier.destroy()` action is
  * only called once per `enable()` cycle. This is reset in `disable()`
- * to re-arm the logic for the lock/unlock cycle.
+* to re-arm the logic for the lock/unlock cycle.
  */
 let barrierDestroyedThisSession = false;
 
@@ -27,20 +27,29 @@ export class MouseBarrierFeature {
 
     /**
      * Enables the feature, connects to settings, and runs the initial check.
+     * @param {boolean} isStartup - True if this is the first run on shell startup.
      */
-    enable() {
+    enable(isStartup = false) {
         this._settingsConnection = this._settings.connect(
             'changed::remove-mouse-barrier',
             () => this._checkBarrierTweak()
         );
 
-        // A delay is required to ensure the panel is loaded before
-        // attempting to find the barrier (race condition on startup)
-        this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1500, () => {
-            this._checkBarrierTweak();
-            this._timeoutId = null;
-            return GLib.SOURCE_REMOVE;
-        });
+        if (isStartup) {
+            // A delay is required ON STARTUP to ensure the panel is loaded
+            this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1500, () => {
+                this._checkBarrierTweak();
+                this._timeoutId = null;
+                return GLib.SOURCE_REMOVE;
+            });
+        } else {
+            // On UNLOCK, the panel is already loaded.
+            // Use idle_add to run this as soon as the shell is ready.
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                this._checkBarrierTweak();
+                return GLib.SOURCE_REMOVE;
+            });
+        }
     }
 
     /**
@@ -84,4 +93,3 @@ export class MouseBarrierFeature {
         }
     }
 }
-
