@@ -21,7 +21,7 @@ export class WindowMenuFeature {
     constructor(settings) {
         this._settings = settings;
         this._settingsConnection = null;
-        this._masterToggleConnection = null; // <-- NEW
+        this._masterToggleConnection = null;
     }
 
     /**

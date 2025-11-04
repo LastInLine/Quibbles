@@ -5,7 +5,7 @@
  *
  * 1. Stable features are loaded once in the main enable() and disable() functions
  * 2. Volatile features are handled by the session-mode functions
- * 3. Lock-screen-only features (clock, unblank) are handled by the session-mode functions
+ * 3. Lock-screen-only features are handled by the session-mode functions
  */
 
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
@@ -31,12 +31,14 @@ export default class QuibblesExtension extends Extension {
         
         // --- Properties for User Session ---
         this._settings = null;
-        this._barrierFeature = null; // Volatile
-        this._activitiesFeature = null; // Volatile
+        // Stable features
         this._windowMenuFeature = null;
-        this._indicatorFeature = null;
         this._screenshotButtonFeature = null;
-        this._systemMenuFeature = null; // Volatile
+        // Volatile features
+        this._barrierFeature = null; 
+        this._activitiesFeature = null;
+        this._indicatorFeature = null;
+        this._systemMenuFeature = null;
 
         // --- Properties for Lock Screen ---
         this._lockSettings = null; 
@@ -94,14 +96,17 @@ export default class QuibblesExtension extends Extension {
             this._lockSettings.disconnect(this._unblankToggleSignalId);
             this._unblankToggleSignalId = null;
         }
+        
         if (this._clockModule) {
             this._clockModule.disable();
             this._clockModule = null;
         }
+        
         if (this._unblankModule) {
             this._unblankModule.disable();
             this._unblankModule = null;
         }
+        
         this._lockSettings?.run_dispose();
         this._lockSettings = null;
     }
@@ -125,6 +130,11 @@ export default class QuibblesExtension extends Extension {
             this._systemMenuFeature = new SystemMenuModule(this._settings);
             this._systemMenuFeature.enable(isStartup);
         } catch(e) { /* Fail silently */ }
+
+        try {
+            this._indicatorFeature = new WorkspaceIndicatorFeature(this._settings);
+            this._indicatorFeature.enable(isStartup);
+        } catch(e) { /* Fail silently */ }
     }
 
     _disableUserSession() {
@@ -141,6 +151,11 @@ export default class QuibblesExtension extends Extension {
         if (this._systemMenuFeature) {
             this._systemMenuFeature.disable();
             this._systemMenuFeature = null;
+        }
+
+        if (this._indicatorFeature) {
+            this._indicatorFeature.disable();
+            this._indicatorFeature = null;
         }
     }
 
@@ -182,11 +197,6 @@ export default class QuibblesExtension extends Extension {
         } catch(e) { /* Fail silently */ }
 
         try {
-            this._indicatorFeature = new WorkspaceIndicatorFeature(this._settings);
-            this._indicatorFeature.enable();
-        } catch(e) { /* Fail silently */ }
-
-        try {
             this._screenshotButtonFeature = new ScreenshotButtonModule(this._settings);
             this._screenshotButtonFeature.enable();
         } catch(e) { /* Fail silently */ }
@@ -215,11 +225,6 @@ export default class QuibblesExtension extends Extension {
         if (this._windowMenuFeature) {
             this._windowMenuFeature.disable();
             this._windowMenuFeature = null;
-        }
-        
-        if (this._indicatorFeature) {
-            this._indicatorFeature.disable();
-            this._indicatorFeature = null;
         }
         
         if (this._screenshotButtonFeature) {

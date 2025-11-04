@@ -46,7 +46,7 @@
     
     <!-- === Window Menu Tweak === -->
     
-    <!-- Naster switch -->
+    <!-- Master switch -->
     <key name="enable-window-menu" type="b">
       <default>true</default>
       <summary>Enable Window Menu Modifications</summary>
@@ -63,7 +63,7 @@
     
     <!-- Lockscreen font -->
     <key name="font-desc" type="s">
-      <default>"Adwaita Sans 200 96"</default>
+      <default>' '</default>
       <summary>Lockscreen Clock Font</summary>
       <description>The Pango font description string for the lockscreen clock.</description>
     </key>

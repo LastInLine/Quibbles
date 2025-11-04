@@ -12,8 +12,9 @@ import GLib from 'gi://GLib';
 
 /**
  * Global flag to ensure the destructive `barrier.destroy()` action is
- * only called once per `enable()` cycle. This is reset in `disable()`
-* to re-arm the logic for the lock/unlock cycle.
+ * only called once per shell session. It is set to true when
+ * destroyed, and reset to false in enable() *only* on an unlock,
+ * which is when GNOME Shell rebuilds the barrier.
  */
 let barrierDestroyedThisSession = false;
 
@@ -30,21 +31,28 @@ export class MouseBarrierFeature {
      * @param {boolean} isStartup - True if this is the first run on shell startup.
      */
     enable(isStartup = false) {
+        // On unlock (!isStartup), the barrier has been rebuilt by the shell and the
+        // global flag to 'false' so it can be destroyed again. This is NOT done in
+        //  disable() to prevent crashes on a double-enable.
+        if (!isStartup) {
+            barrierDestroyedThisSession = false;
+        }
+
         this._settingsConnection = this._settings.connect(
             'changed::remove-mouse-barrier',
             () => this._checkBarrierTweak()
         );
 
         if (isStartup) {
-            // A delay is required ON STARTUP to ensure the panel is loaded
+            // On STARTUP, a delay is required to ensure the panel is loaded
             this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1500, () => {
                 this._checkBarrierTweak();
                 this._timeoutId = null;
                 return GLib.SOURCE_REMOVE;
             });
         } else {
-            // On UNLOCK, the panel is already loaded.
-            // Use idle_add to run this as soon as the shell is ready.
+            // On UNLOCK, the panel is already loaded so use
+            // idle_add to run this as soon as the shell is ready
             GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 this._checkBarrierTweak();
                 return GLib.SOURCE_REMOVE;
@@ -53,14 +61,9 @@ export class MouseBarrierFeature {
     }
 
     /**
-     * Disables the feature, cleans up listeners, and resets the session flag.
+     * Disables the feature and cleans up listeners.
      */
     disable() {
-        // The extension is disabled/re-enabled on lock/unlock.
-        // Resetting the global flag here is critical, as it allows
-        // enable() to re-apply the tweak after the user unlocks.
-        barrierDestroyedThisSession = false;
-
         if (this._timeoutId) {
             GLib.source_remove(this._timeoutId);
         }
@@ -70,8 +73,8 @@ export class MouseBarrierFeature {
     }
 
     /**
-     * Applies the barrier tweak. This is a destructive, one-way action
-     * that can only be safely run once per session to prevent shell crashes.
+     * Applies the barrier tweak in a destructive, one-way action that
+     * can only be safely run once per session to prevent shell crashes
      */
     _applyBarrierTweak() {
         if (!barrierDestroyedThisSession) {
@@ -84,8 +87,8 @@ export class MouseBarrierFeature {
     }
 
     /**
-     * A gatekeeper function that checks if the barrier tweak should be applied.
-     * It's called on startup and whenever the setting is changed.
+     * Gatekeeper function that checks if the barrier tweak should be applied
+     * which is called on startup and whenever the setting is changed
      */
     _checkBarrierTweak() {
         if (this._settings.get_boolean('remove-mouse-barrier')) {
