@@ -160,16 +160,16 @@ export default class QuibblesExtension extends Extension {
     }
 
     // --- Session Mode Switching Logic ---
+    
     _onSessionModeChanged(session) {
         if (session.currentMode === 'unlock-dialog') {
-            // We are on the lock screen
+            // We are ON the lock screen
             this._disableUserSession();
             this._enableLockScreen();
 
             // Connect to the unlock dialog's destroy signal
-            // to clean up before it's disposed
             this._unlockDialog = Main.screenShield._unlockDialog;
-            if (this._unlockDialog) {
+            if (this._unlockDialog && !this._unlockDialogDestroyId) {
                 this._unlockDialogDestroyId = this._unlockDialog.connect('destroy', () => {
                     this._disableLockScreen();
                     this._unlockDialog = null;
@@ -178,12 +178,16 @@ export default class QuibblesExtension extends Extension {
             }
 
         } else {
-            // We are in the user session
+            // We are IN the user session
+            if (this._clockModule || this._unblankModule) {
+                this._disableLockScreen();
+            }
+            
             this._enableUserSession(this._isStartup);
             this._isStartup = false;
         }
     }
-
+    
     // --- Main Entry/Exit Points ---
 
     enable() {
