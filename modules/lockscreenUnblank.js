@@ -1,5 +1,9 @@
 // Quibbles - Copyright (C) 2025 LastInLine - See LICENSE file for details.
 
+// This is a refactored version of the "Unblank Lockscreen" extension
+// by sun.wxg@gmail.com, which is licensed under the MIT License.
+// We are using it in accordance with that license.
+
 /**
  * Lockscreen Unblank Feature
  *
@@ -7,12 +11,6 @@
  */
 
 'use strict';
-
-//
-// This is a refactored version of the "Unblank Lockscreen" extension
-// by sun.wxg@gmail.com, which is licensed under the MIT License.
-// We are using it in accordance with that license.
-//
 
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';

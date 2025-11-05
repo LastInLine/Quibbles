@@ -6,15 +6,12 @@
  * This file contains all the logic for removing the screenshot
  * button in the system section of the quick settings menu.
  */
+
+'use strict';
  
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import GLib from 'gi://GLib';
 
-/**
- * Manages the visibility of the Screenshot button in the Quick Settings menu.
- * This module waits for the shell to stabilize before attempting to find
- * the button, fixing a startup race condition.
- */
 export class ScreenshotButtonModule {
     constructor(settings) {
         this._settings = settings;
@@ -101,5 +98,3 @@ export class ScreenshotButtonModule {
         this._button.visible = !shouldHide;
     }
 }
-
-

@@ -1,5 +1,8 @@
 // Quibbles - Copyright (C) 2025 LastInLine - See LICENSE file for details.
+
 // Contains logic adapted from Tweaks-system-menu by Philippe Troin (F-i-f)
+// also known as the GNOME extension "Tweaks & Extensions in System Menu"
+// which is licensed under the GPL-3.0 license.
 
 /**
  * System Menu Feature
@@ -7,6 +10,8 @@
  * This file contains all the logic for adding shortcut
  * buttons in the system section of the quick settings menu.
  */
+
+'use strict';
 
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';

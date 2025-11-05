@@ -7,6 +7,8 @@
  * workspace indicator and menu in the top panel.
  */
 
+'use strict';
+
 import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import GObject from 'gi://GObject';
@@ -202,4 +204,3 @@ export class WorkspaceIndicatorFeature {
         this._indicator = null;
     }
 }
-

@@ -7,6 +7,8 @@
  * to specify visible window titlebar context menu items.
  */
 
+'use strict';
+
 import { WindowMenu } from 'resource:///org/gnome/shell/ui/windowMenu.js';
 
 /**

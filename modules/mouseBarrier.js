@@ -7,6 +7,8 @@
  * the top-right mouse pressure barrier.
  */
 
+'use strict';
+
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import GLib from 'gi://GLib';
 
