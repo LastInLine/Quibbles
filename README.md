@@ -1,6 +1,6 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./icons/quibbles-logo-dark.svg">
-  <img alt="Quibbles Logo" src="./icons/quibbles-logo-light.svg" width="200">
+  <img alt="Quibbles Logo" src="./icons/quibbles-logo-light.svg" width="600">
 </picture>
 
 # Quibbles
