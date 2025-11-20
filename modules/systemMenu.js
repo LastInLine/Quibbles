@@ -18,6 +18,7 @@ import GObject from 'gi://GObject';
 import Shell from 'gi://Shell';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { QuickSettingsItem } from 'resource:///org/gnome/shell/ui/quickSettings.js';
+import { waitFor } from './shellUtils.js';
 
 /**
  * A custom QuickSettingsItem that acts as an application launcher
@@ -59,12 +60,16 @@ export class SystemMenuModule {
     }
 
     enable() {
-        // Add a delay to avoid a startup race condition
-        this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1500, () => {
-            this._initialize();
-            this._timeoutId = null;
-            return GLib.SOURCE_REMOVE;
-        });
+        // Poll for the existence of the system menu item before initializing
+        this._timeoutId = waitFor(
+            () => {
+                return !!Main.panel.statusArea.quickSettings._system._systemItem.child;
+            },
+            () => {
+                this._initialize();
+                this._timeoutId = null;
+            }
+        );
     }
 
     _initialize() {
@@ -131,7 +136,8 @@ export class SystemMenuModule {
         try {
             this._systemItemChild.remove_child(button);
             button.destroy();
-        } catch { }
+        } catch {
+        }
     }
 
     _onApplicationsChange() {
@@ -186,4 +192,3 @@ export class SystemMenuModule {
         }
     }
 }
-

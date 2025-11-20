@@ -11,6 +11,7 @@
  
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import GLib from 'gi://GLib';
+import { waitFor } from './shellUtils.js';
 
 export class ScreenshotButtonModule {
     constructor(settings) {
@@ -26,13 +27,21 @@ export class ScreenshotButtonModule {
             () => this._updateVisibility()
         );
 
-        // Wait for the shell to stabilize before searching
-        // for the button to avoid a startup race condition
-        this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1500, () => {
-            this._findAndToggleButton();
-            this._timeoutId = null;
-            return GLib.SOURCE_REMOVE;
-        });
+        // Poll for the existence of the screenshot button
+        this._timeoutId = waitFor(
+            () => {
+                // Attempt to find the button.
+                // If found, _button is set to the object.
+                // Returns true if found, false otherwise.
+                this._findAndToggleButton();
+                return this._button !== null;
+            },
+            () => {
+                // Once found, ensure the correct visibility state is applied.
+                this._updateVisibility();
+                this._timeoutId = null;
+            }
+        );
     }
 
     disable() {
@@ -41,7 +50,6 @@ export class ScreenshotButtonModule {
             this._signalId = null;
         }
 
-        // If enable() is still waiting, cancel the pending timeout
         if (this._timeoutId) {
             GLib.source_remove(this._timeoutId);
             this._timeoutId = null;
@@ -56,18 +64,18 @@ export class ScreenshotButtonModule {
     }
 
     /**
-     * Finds the button and updates visibility.
+     * Finds the button object in the UI hierarchy.
+     * Sets this._button if found.
      */
     _findAndToggleButton() {
         if (this._button) {
-            this._updateVisibility();
             return;
         }
 
         try {
             const quickSettings = Main.panel.statusArea.quickSettings;
 
-            // This is the fragile path to the button's parent
+            // Navigate the internal hierarchy to find the system item container
             const systemItemChild = quickSettings._system?._systemItem?.child;
             
             if (!systemItemChild) {
@@ -79,10 +87,6 @@ export class ScreenshotButtonModule {
                     this._button = child;
                     break;
                 }
-            }
-
-            if (this._button) {
-                this._updateVisibility();
             }
         } catch {
             this._button = null;

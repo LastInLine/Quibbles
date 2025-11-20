@@ -11,12 +11,12 @@ A personal project to alleviate annoyances from the GNOME shell, particularly wh
 
 The user can:
 
-- **Trim the Window Context Menu**
-  - Remove items from the title bar context menu. Useful when used with a tiling window manager that doesn't have some concepts.
+- **Trim and reorder the Window Context Menu**
+  - Remove items from the title bar context menu and put them into an order that makes sense to you. Useful when used with a tiling window manager that doesn't have some concepts.
 - **Get rid of the Overview**
   - Make the stock workspace indicator button unclickable or replace the stock indicator with a custom version that leads directly to hidden workspaces. Customizable to accommodate multiple visible workspaces and layouts.
 - **Eliminate the mouse barrier to the right of the quick settings icons**
-  - Please note that once the mouse barrier is removed, it cannot be restored without restarting the user session.
+  - Finally go where you've never gone before (to the right monitor at the very top).
 - **Change the lockscreen clock font and size**
   - Improve the lockscreen appearance with a simple change.
 - **Unblank the lockscreen**

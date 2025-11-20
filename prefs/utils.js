@@ -1,8 +1,10 @@
 // Quibbles - Copyright (C) 2025 LastInLine - See LICENSE file for details.
 
 /**
- * Shared utility functions for the preferences window.
+ * Shared utility functions for the preferences window and extension logic.
  */
+ 
+'use strict';
 
 import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
@@ -27,4 +29,3 @@ export function createSwitch(title, subtitle, settings, settingName) {
     row.activatable_widget = toggle;
     return row;
 }
-

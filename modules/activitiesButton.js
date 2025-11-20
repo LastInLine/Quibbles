@@ -11,6 +11,7 @@
 
 import GLib from 'gi://GLib';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import { waitFor } from './shellUtils.js';
 
 export class ActivitiesButtonFeature {
     constructor(settings) {
@@ -19,53 +20,50 @@ export class ActivitiesButtonFeature {
         this._activitiesButton = null; 
         // Used in disable() to restore the button to its pre-extension state
         this._originalActivitiesState = { reactive: true, visible: true };
-        // Used to manage the startup timer
-        this._initTimeoutId = null;
+        this._timeoutId = null;
     }
 
     /**
-     * Enables the feature, connects to settings, and applies the current setting
-     * with a delay to win the race condition.
+     * Enables the feature, connects to settings, and applies the current setting.
      */
     enable() {
-        // Wrap the entire enable logic in a timer
-        // to ensure it runs after other extensions on unlock.
-        this._initTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
-            
-            try {
-                this._activitiesButton = Main.panel.statusArea['activities'];
-            } catch {
-                this._activitiesButton = null;
+        // Poll for the existence of the Activities button in the panel
+        this._timeoutId = waitFor(
+            () => {
+                try {
+                    return !!Main.panel.statusArea['activities'];
+                } catch {
+                    return false;
+                }
+            },
+            () => {
+                this._initialize();
+                this._timeoutId = null;
             }
+        );
+    }
 
-            if (!this._activitiesButton) {
-                this._initTimeoutId = null;
-                return GLib.SOURCE_REMOVE;
-            }
+    _initialize() {
+        this._activitiesButton = Main.panel.statusArea['activities'];
 
-            this._originalActivitiesState.reactive = this._activitiesButton.reactive;
-            this._originalActivitiesState.visible = this._activitiesButton.container.visible;
+        this._originalActivitiesState.reactive = this._activitiesButton.reactive;
+        this._originalActivitiesState.visible = this._activitiesButton.container.visible;
 
-            this._settingsConnection = this._settings.connect(
-                'changed::activities-button-mode',
-                () => this._updateActivitiesButton()
-            );
+        this._settingsConnection = this._settings.connect(
+            'changed::activities-button-mode',
+            () => this._updateActivitiesButton()
+        );
 
-            this._updateActivitiesButton();
-            
-            this._initTimeoutId = null;
-            return GLib.SOURCE_REMOVE;
-        });
+        this._updateActivitiesButton();
     }
 
     /**
      * Disables the feature, cleans up listeners, and restores the button.
      */
     disable() {
-        // --- If we are disabled before our timer fires, cancel it! ---
-        if (this._initTimeoutId) {
-            GLib.source_remove(this._initTimeoutId);
-            this._initTimeoutId = null;
+        if (this._timeoutId) {
+            GLib.source_remove(this._timeoutId);
+            this._timeoutId = null;
         }
 
         if (this._settingsConnection) {
@@ -106,5 +104,3 @@ export class ActivitiesButtonFeature {
         }
     }
 }
-
-

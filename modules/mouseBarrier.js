@@ -3,98 +3,79 @@
 /**
  * Mouse Barrier Feature
  *
- * This file contains all the logic for removing 
+ * This file contains all the logic for removing
  * the top-right mouse pressure barrier.
+ *
+ * ARCHITECTURE NOTE:
+ * The barrier is a low-level Meta.Barrier object which cannot be modified
+ * to be "permeable"; it must be destroyed. To do this safely without crashing
+ * the shell, the logic hooks into the LayoutManager's update function to
+ * intercept barrier creation.
  */
 
 'use strict';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import GLib from 'gi://GLib';
-
-/**
- * Global flag to ensure the destructive `barrier.destroy()` action is
- * only called once per shell session. It is set to true when
- * destroyed, and reset to false in enable() *only* on an unlock,
- * which is when GNOME Shell rebuilds the barrier.
- */
-let barrierDestroyedThisSession = false;
 
 export class MouseBarrierFeature {
 
     constructor(settings) {
         this._settings = settings;
-        this._timeoutId = null;
         this._settingsConnection = null;
+        this._originalUpdatePanelBarrier = null;
     }
 
-    /**
-     * Enables the feature, connects to settings, and runs the initial check.
-     * @param {boolean} isStartup - True if this is the first run on shell startup.
-     */
-    enable(isStartup = false) {
-        // On unlock (!isStartup), the barrier has been rebuilt by the shell and the
-        // global flag to 'false' so it can be destroyed again. This is NOT done in
-        //  disable() to prevent crashes on a double-enable.
-        if (!isStartup) {
-            barrierDestroyedThisSession = false;
-        }
+    enable() {
+        // Save the original function to restore it on disable
+        this._originalUpdatePanelBarrier = Main.layoutManager._updatePanelBarrier;
 
+        // Override the function to intercept barrier creation
+        Main.layoutManager._updatePanelBarrier = () => {
+            // Run the original logic first to ensure the shell stays healthy
+            // (This ensures other barriers or panel logic still run)
+            if (this._originalUpdatePanelBarrier) {
+                this._originalUpdatePanelBarrier.call(Main.layoutManager);
+            }
+
+            // Check if the barrier removal setting is enabled
+            if (this._settings.get_boolean('remove-mouse-barrier')) {
+                // Safely destroy the barrier. Setting the reference to null
+                // prevents the Shell from accessing destroyed memory (segfaults)
+                // and tells internal logic that no barrier exists.
+                if (Main.layoutManager._rightPanelBarrier) {
+                    Main.layoutManager._rightPanelBarrier.destroy();
+                    Main.layoutManager._rightPanelBarrier = null;
+                }
+            }
+        };
+
+        // Connect listener to apply changes immediately when settings change
         this._settingsConnection = this._settings.connect(
             'changed::remove-mouse-barrier',
-            () => this._checkBarrierTweak()
+            () => {
+                // Force the shell to re-evaluate the barrier immediately
+                Main.layoutManager._updatePanelBarrier();
+            }
         );
 
-        if (isStartup) {
-            // On STARTUP, a delay is required to ensure the panel is loaded
-            this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1500, () => {
-                this._checkBarrierTweak();
-                this._timeoutId = null;
-                return GLib.SOURCE_REMOVE;
-            });
-        } else {
-            // On UNLOCK, the panel is already loaded so use
-            // idle_add to run this as soon as the shell is ready
-            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-                this._checkBarrierTweak();
-                return GLib.SOURCE_REMOVE;
-            });
-        }
+        // Force an immediate update to apply the patch without waiting
+        Main.layoutManager._updatePanelBarrier();
     }
 
-    /**
-     * Disables the feature and cleans up listeners.
-     */
     disable() {
-        if (this._timeoutId) {
-            GLib.source_remove(this._timeoutId);
-        }
+        // Disconnect settings listener
         if (this._settingsConnection) {
             this._settings.disconnect(this._settingsConnection);
+            this._settingsConnection = null;
         }
-    }
 
-    /**
-     * Applies the barrier tweak in a destructive, one-way action that
-     * can only be safely run once per session to prevent shell crashes
-     */
-    _applyBarrierTweak() {
-        if (!barrierDestroyedThisSession) {
-            const barrier = Main.layoutManager._rightPanelBarrier;
-            if (barrier) {
-                barrier.destroy();
-                barrierDestroyedThisSession = true;
-            }
+        // Restore the original function
+        if (this._originalUpdatePanelBarrier) {
+            Main.layoutManager._updatePanelBarrier = this._originalUpdatePanelBarrier;
+            this._originalUpdatePanelBarrier = null;
         }
-    }
 
-    /**
-     * Gatekeeper function that checks if the barrier tweak should be applied
-     * which is called on startup and whenever the setting is changed
-     */
-    _checkBarrierTweak() {
-        if (this._settings.get_boolean('remove-mouse-barrier')) {
-            this._applyBarrierTweak();
-        }
+        // Force an update to restore the barrier if necessary
+        Main.layoutManager._updatePanelBarrier();
     }
 }
