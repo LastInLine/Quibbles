@@ -88,7 +88,6 @@ const SystemMenuAppsPicker = GObject.registerClass(
 
                 const row = new Adw.ActionRow({
                     title: app.get_display_name(),
-                    subtitle: app.get_id(),
                 });
 
                 const icon = new Gtk.Image({
