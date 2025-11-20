@@ -22,11 +22,6 @@ import * as Overview from 'resource:///org/gnome/shell/ui/overview.js';
 import { loadInterfaceXML } from 'resource:///org/gnome/shell/misc/fileUtils.js';
 
 // --- DBus and Interface Definitions ---
-const UPOWER_BUS_NAME = 'org.freedesktop.UPower';
-const UPOWER_OBJECT_PATH = '/org/freedesktop/UPower/devices/DisplayDevice';
-const DisplayDeviceInterface = loadInterfaceXML('org.freedesktop.UPower.Device');
-const PowerManagerProxy = Gio.DBusProxy.makeProxyWrapper(DisplayDeviceInterface);
-
 const UPowerIface = loadInterfaceXML('org.freedesktop.UPower');
 const UPowerProxy = Gio.DBusProxy.makeProxyWrapper(UPowerIface);
 
@@ -119,11 +114,11 @@ class Unblank {
 // They all rely on the 'unblankInstance' variable.
 
 function _setActive(active) {
-    let prevIsActive = this._isActive;
+    const prevIsActive = this._isActive;
     this._isActive = active;
     unblankInstance.inLock = active;
 
-    if (prevIsActive != this._isActive) {
+    if (prevIsActive !== this._isActive) {
         if (!unblankInstance.isUnblank() || unblankInstance._activeOnce) {
             this.emit('active-changed');
             unblankInstance._activeOnce = false;
@@ -155,7 +150,7 @@ function _activateFade(lightbox, time) {
         lightbox.lightOn(time);
     }
 
-    if (this._becameActiveId == 0)
+    if (this._becameActiveId === 0)
         this._becameActiveId = this.idleMonitor.add_user_active_watch(this._onUserBecameActive.bind(this))
 }
 
@@ -163,12 +158,12 @@ function _onUserBecameActive() {
     // Call original
     unblankInstance.onUserBecameActiveOrigin.call(Main.screenShield);
 
-    if (this._becameActiveId != 0) {
+    if (this._becameActiveId !== 0) {
         this.idleMonitor.remove_watch(this._becameActiveId);
         this._becameActiveId = 0;
     }
 
-    if (unblankInstance.hideLightboxId != 0) {
+    if (unblankInstance.hideLightboxId !== 0) {
         GLib.source_remove(unblankInstance.hideLightboxId);
         unblankInstance.hideLightboxId= 0;
     }
@@ -183,7 +178,7 @@ function _onUserBecameActive() {
 
 function _resetLockScreen(params) {
     _activateTimer();
-    if (this._lockScreenState != MessageTray.State.HIDDEN)
+    if (this._lockScreenState !== MessageTray.State.HIDDEN)
         return;
 
     this._lockScreenGroup.show();
@@ -226,8 +221,8 @@ function _changeToBlank() {
 
 function _activateTimer() {
     _deactiveTimer();
-    let timer = unblankInstance.gsettings.get_int('time');
-    if (timer != 0) {
+    const timer = unblankInstance.gsettings.get_int('time');
+    if (timer !== 0) {
         unblankInstance._turnOffMonitorId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, timer, () => {
             _changeToBlank();
             unblankInstance._turnOffMonitorId = 0;
@@ -238,7 +233,7 @@ function _activateTimer() {
 }
 
 function _deactiveTimer() {
-    if (unblankInstance && unblankInstance._turnOffMonitorId != 0) {
+    if (unblankInstance && unblankInstance._turnOffMonitorId !== 0) {
         GLib.source_remove(unblankInstance._turnOffMonitorId);
         unblankInstance._turnOffMonitorId = 0;
     }

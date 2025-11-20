@@ -6,7 +6,7 @@
  * preference pages from the 'Prefs/' directory.
  */
 
-import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 import { WorkspacesPage } from './prefs/WorkspacesPage.js';
 import { WindowMenuPage } from './prefs/WindowMenuPage.js';

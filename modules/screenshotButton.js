@@ -84,7 +84,7 @@ export class ScreenshotButtonModule {
             if (this._button) {
                 this._updateVisibility();
             }
-        } catch (e) {
+        } catch {
             this._button = null;
         }
     }

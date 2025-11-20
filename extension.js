@@ -119,22 +119,22 @@ export default class QuibblesExtension extends Extension {
         try {
             this._barrierFeature = new MouseBarrierFeature(this._settings);
             this._barrierFeature.enable(isStartup);
-        } catch(e) { /* Fail silently */ }
+        } catch { }
 
         try {
             this._activitiesFeature = new ActivitiesButtonFeature(this._settings);
             this._activitiesFeature.enable(isStartup);
-        } catch(e) { /* Fail silently */ }
+        } catch { }
 
         try {
             this._systemMenuFeature = new SystemMenuModule(this._settings);
             this._systemMenuFeature.enable(isStartup);
-        } catch(e) { /* Fail silently */ }
+        } catch { }
 
         try {
             this._indicatorFeature = new WorkspaceIndicatorFeature(this._settings);
             this._indicatorFeature.enable(isStartup);
-        } catch(e) { /* Fail silently */ }
+        } catch { }
     }
 
     _disableUserSession() {
@@ -198,12 +198,12 @@ export default class QuibblesExtension extends Extension {
         try {
             this._windowMenuFeature = new WindowMenuFeature(this._settings);
             this._windowMenuFeature.enable();
-        } catch(e) { /* Fail silently */ }
+        } catch { }
 
         try {
             this._screenshotButtonFeature = new ScreenshotButtonModule(this._settings);
             this._screenshotButtonFeature.enable();
-        } catch(e) { /* Fail silently */ }
+        } catch { }
         
         // Connect the session mode handler
         this._sessionId = Main.sessionMode.connect('updated',

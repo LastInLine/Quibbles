@@ -34,7 +34,7 @@ class MyIndicator extends PanelMenu.Button {
 
         const currentWorkspaceName = workspaceNames[activeWorkspaceIndex] || _("Workspace %d").format(activeWorkspaceIndex + 1);
 
-        let label = new St.Label({
+        const label = new St.Label({
             text: currentWorkspaceName,
             y_align: Clutter.ActorAlign.CENTER,
         });
@@ -65,8 +65,8 @@ class MyIndicator extends PanelMenu.Button {
             const workspace = workspaceManager.get_workspace_by_index(i);
             if (!workspace) continue; 
 
-            let name = workspaceNames[i] || _("Workspace %d").format(i + 1);
-            let menuItem = new PopupMenu.PopupMenuItem(name);
+            const name = workspaceNames[i] || _("Workspace %d").format(i + 1);
+            const menuItem = new PopupMenu.PopupMenuItem(name);
 
             menuItem.connect('activate', () => {
                 workspace.activate(global.get_current_time());
@@ -77,7 +77,7 @@ class MyIndicator extends PanelMenu.Button {
         // If no other workspaces are available to switch to, display a placeholder
         if (this.menu.numMenuItems <= 1) {
             this.menu.removeAll();
-            let testItem = new PopupMenu.PopupMenuItem('No hidden workspaces', { reactive: false });
+            const testItem = new PopupMenu.PopupMenuItem('No hidden workspaces', { reactive: false });
             this.menu.addMenuItem(testItem);
         }
     }

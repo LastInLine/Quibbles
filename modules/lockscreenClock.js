@@ -66,7 +66,7 @@ export default class LockscreenClock {
             
             if (clock && clock._time) {
                 this._timeLabel = clock._time;
-                // Save the original style before we modify it
+                // Save the original style before modifying it
                 this._originalTimeStyle = this._timeLabel.get_style() || '';
                 
                 this._settingsChangedId = this._settings.connect('changed::font-desc', () => {
@@ -78,28 +78,26 @@ export default class LockscreenClock {
                 
             }
 
-        } catch (e) {
+        } catch {
             // This will fail if the internal GNOME Shell path
-            // `Main.screenShield._dialog._clock._time` changes.
-            // We catch and swallow the error so it doesn't crash the shell.            
+            // `Main.screenShield._dialog._clock._time` changes
+            // Catch and swallow the error so it doesn't crash the shell      
         }
     }
 
     disable() {
         try {
-            // Always restore the original CSS style on disable
+            // Restore the original CSS style on disable
             if (this._timeLabel) {
                 this._timeLabel.set_style(this._originalTimeStyle);
             }
-        } catch (e) {
-        }
+        } catch { }
 
         try {
             if (this._settings && this._settingsChangedId) {
                 this._settings.disconnect(this._settingsChangedId);
             }
-        } catch (e) {
-        }
+        } catch { }
 
         this._timeLabel = null;
         this._originalTimeStyle = null;

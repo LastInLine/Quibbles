@@ -100,7 +100,7 @@ export class WindowMenuFeature {
      */
     _forceMenuRebuild() {
         global.get_window_actors().forEach(actor => {
-            let window = actor.get_meta_window();
+            const window = actor.get_meta_window();
             if (window && window._windowMenuManager) {
                 window._windowMenuManager.menu._buildMenu();
             }

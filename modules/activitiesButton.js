@@ -34,7 +34,7 @@ export class ActivitiesButtonFeature {
             
             try {
                 this._activitiesButton = Main.panel.statusArea['activities'];
-            } catch(e) {
+            } catch {
                 this._activitiesButton = null;
             }
 

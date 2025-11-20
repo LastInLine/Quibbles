@@ -95,9 +95,7 @@ export class SystemMenuModule {
 
             this._onApplicationsChange();
 
-        } catch (e) {
-            // Fails silently if the internal shell structure changes
-        }
+        } catch { }
     }
 
     disable() {
@@ -133,8 +131,7 @@ export class SystemMenuModule {
         try {
             this._systemItemChild.remove_child(button);
             button.destroy();
-        } catch (e) {
-        }
+        } catch { }
     }
 
     _onApplicationsChange() {
