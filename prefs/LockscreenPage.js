@@ -22,7 +22,16 @@ export class LockscreenPage {
         });
         this.page.add(clockGroup);
 
-        // --- Font Button ---
+        // --- Reset Button ---
+        const resetButton = new Gtk.Button({
+            icon_name: 'edit-undo-symbolic',
+            tooltip_text: _('Reset to Default'),
+            css_classes: ['flat'],
+            valign: Gtk.Align.CENTER,
+        });
+        clockGroup.set_header_suffix(resetButton);
+
+        // --- Font Button Row ---
         const fontRow = new Adw.ActionRow({
             title: _('Custom Clock Font'),
         });
@@ -36,22 +45,7 @@ export class LockscreenPage {
             level: Gtk.FontChooserLevel.FONT | Gtk.FontChooserLevel.SIZE | Gtk.FontChooserLevel.STYLE,
         });
 
-        // --- Reset Button ---
-        const resetButton = new Gtk.Button({
-            icon_name: 'edit-undo-symbolic',
-            valign: Gtk.Align.CENTER,
-            tooltip_text: _('Reset to Default'),
-        });
-
-        // --- Button Group ---
-        const buttonBox = new Gtk.Box({
-            spacing: 6,
-            orientation: Gtk.Orientation.HORIZONTAL
-        });
-        buttonBox.append(resetButton);
-        buttonBox.append(fontButton);
-
-        fontRow.add_suffix(buttonBox);
+        fontRow.add_suffix(fontButton);
         fontRow.set_activatable_widget(fontButton); 
 
         // --- Signal Handlers ---

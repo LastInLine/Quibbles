@@ -89,6 +89,12 @@
       <description>Time in seconds before the screen blanks. Set to 0 to disable screen blanking entirely.</description>
     </key>
 
+    <!-- Date Menu Button -->
+    <key name="clock-weather-enabled" type="b">
+      <default>false</default>
+      <summary>Show weather next to the clock</summary>
+    </key>
+    
     <!-- === Quick Settings === -->
            
     <key name="remove-mouse-barrier" type="b">

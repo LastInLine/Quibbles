@@ -1,12 +1,13 @@
 // Quibbles - Copyright (C) 2025 LastInLine - See LICENSE file for details.
 
 /**
- * Preferences page for Quick Settings.
+ * Preferences page for Top Panel settings which
+ * controls quick settings modifications in a submenu.
  */
- 
+
 import Adw from 'gi://Adw';
-import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
+import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import { gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import { createSwitch } from './utils.js';
@@ -219,82 +220,161 @@ const SystemMenuAppsPicker = GObject.registerClass(
     }
 );
 
-
-export class QuickSettingsPage {
+// --- MAIN PAGE ---
+export class TopPanelPage {
     constructor(settings) {
         this.page = new Adw.PreferencesPage({
-            title: _('Quick Settings'),
+            title: _('Top Panel'),
             iconName: 'org.gnome.Settings-desktop-sharing-symbolic'
         });
 
-        // --- Mouse Barrier ---
-        const barrierGroup = new Adw.PreferencesGroup({
-            title: _('Mouse Barrier'),
-            description: _('Fence to the right of Quick Settings icons when a second monitor is to the right.')
+        // --- GROUP 1: Tweaks ---
+        const generalGroup = new Adw.PreferencesGroup({
+            title: _('Tweaks'),
         });
-        this.page.add(barrierGroup);
+        this.page.add(generalGroup);
 
-        barrierGroup.add(createSwitch(
-            _('Remove Top-Right Mouse Barrier'),
-           null,
+        // Mouse Barrier
+        generalGroup.add(createSwitch(
+            _('Remove Mouse Barrier'),
+            _('Fence to the right of Status icons when a second monitor is to the right.'),
             settings,
             'remove-mouse-barrier'
         ));
 
-        // --- System Menu Apps ---
-       const positionGroup = new Adw.PreferencesGroup({
+        // Weather
+        generalGroup.add(createSwitch(
+            _('Display Current Weather on the Date Button'),
+            _('Add conditions and temperature to the right of the clock.'),
+            settings,
+            'clock-weather-enabled'
+        ));
+        
+        // Quick Settings
+        const qsRow = new Adw.ActionRow({
+            title: _('Quick Settings System Menu'),
+            subtitle: _('Add, remove, or reorder items in the system menu'),
+            activatable: true,
+        });
+        
+        qsRow.add_suffix(new Gtk.Image({ icon_name: 'go-next-symbolic' }));
+        qsRow.connect('activated', () => {
+            this.page.get_root().push_subpage(this._createQuickSettingsSubpage(settings));
+        });
+        generalGroup.add(qsRow);
+
+        // --- GROUP 2: Workspace Management ---
+        const wsGroup = new Adw.PreferencesGroup({
+            title: _('Workspace Management'),
+        });
+        this.page.add(wsGroup);
+
+        // Workspace Indicator Toggle
+        wsGroup.add(createSwitch(
+            _('Enable Workspace Indicator'),
+            _('Displays the current workspace name and a switcher menu.'),
+            settings,
+            'enable-workspace-indicator'
+        ));
+
+        // Indicator Position
+        const posRow = new Adw.ActionRow({
+            title: _('Indicator Position')
+        });
+        const posBox = new Gtk.Box({ spacing: 6, valign: Gtk.Align.CENTER });
+        
+        const posDrop = new Gtk.DropDown({
+            model: Gtk.StringList.new(['Left', 'Center', 'Right']),
+            selected: ['left', 'center', 'right'].indexOf(settings.get_string('workspace-indicator-position'))
+        });
+        posDrop.connect('notify::selected', () => {
+            const vals = ['left', 'center', 'right'];
+            settings.set_string('workspace-indicator-position', vals[posDrop.selected]);
+        });
+
+        const idxSpin = new Gtk.SpinButton({
+            adjustment: new Gtk.Adjustment({ value: settings.get_int('workspace-indicator-index'), lower: 0, upper: 20, step_increment: 1 }),
+            digits: 0
+        });
+        
+        settings.bind('workspace-indicator-index', idxSpin, 'value', Gio.SettingsBindFlags.DEFAULT);
+
+        posBox.append(posDrop);
+        posBox.append(idxSpin);
+        posRow.add_suffix(posBox);
+        wsGroup.add(posRow);
+
+        // Hide Indices
+        const hideIndicesRow = new Adw.ActionRow({
+            title: _('Hide Workspaces from Menu'),
+            subtitle: _('Comma-separated IDs (e.g. 0, 1).'),
+        });
+        
+        const entry = new Gtk.Entry({
+            text: settings.get_string('hide-workspace-indices'),
+            valign: Gtk.Align.CENTER,
+        });
+        
+        settings.bind('hide-workspace-indices', entry, 'text', Gio.SettingsBindFlags.DEFAULT);
+        hideIndicesRow.add_suffix(entry);
+        wsGroup.add(hideIndicesRow);
+        
+        // Activiites Button
+        const actRow = new Adw.ActionRow({ title: _('Activities Button') });
+        const actDrop = new Gtk.DropDown({
+            model: Gtk.StringList.new(['Default', 'Unclickable', 'Hidden']),
+            selected: ['default', 'unclickable', 'hidden'].indexOf(settings.get_string('activities-button-mode')),
+            valign: Gtk.Align.CENTER,
+        });
+        
+        actDrop.connect('notify::selected', () => {
+            const vals = ['default', 'unclickable', 'hidden'];
+            settings.set_string('activities-button-mode', vals[actDrop.selected]);
+        });
+        
+        actRow.add_suffix(actDrop);
+        wsGroup.add(actRow);
+    }
+
+    _createQuickSettingsSubpage(settings) {
+        const page = new Adw.NavigationPage({ title: _('Quick Settings'), tag: 'qs' });
+        const toolbarView = new Adw.ToolbarView();
+        toolbarView.add_top_bar(new Adw.HeaderBar());
+        
+        const prefsPage = new Adw.PreferencesPage();
+        
+        // Group 1: Settings
+        const settingsGroup = new Adw.PreferencesGroup({
             title: _('System Menu Apps'),
             description: _('Application icons to appear in the system menu.'),
         });
-        this.page.add(positionGroup);
-        
-            positionGroup.add(createSwitch(
+        settingsGroup.add(createSwitch(
             _('Hide Screenshot Button'),
             null,
             settings,
             'hide-screenshot-button'
         ));
         
-        const positionRow = new Adw.ActionRow({
-            title: _('Launcher Position'),
-        });
-
-        const positionDropdown = new Gtk.DropDown({
-            model: Gtk.StringList.new([
-                _('Leftmost'),
-                _('After Screenshot'),
-            ]),
+        const launcherPosRow = new Adw.ActionRow({ title: _('Launcher Position') });
+        const launcherDrop = new Gtk.DropDown({
+            model: Gtk.StringList.new([_('Leftmost'), _('After Screenshot')]),
             valign: Gtk.Align.CENTER,
+            selected: (settings.get_int('system-menu-position') === 2) ? 0 : 1
         });
-        positionRow.add_suffix(positionDropdown);
-        positionRow.activatable_widget = positionDropdown;
-        
-        const intToSelection = (intValue) => {
-            if (intValue === 2) return 0; 
-            return 1; 
-        };
-
-        const selectionToInt = (selection) => {
-            if (selection === 0) return 2;
-            return 3;
-        };
-        
-        const currentPos = settings.get_int('system-menu-position');
-        positionDropdown.set_selected(intToSelection(currentPos));
-
-        positionDropdown.connect('notify::selected', () => {
-            const newIntVal = selectionToInt(positionDropdown.selected);
-            settings.set_int('system-menu-position', newIntVal);
+        launcherDrop.connect('notify::selected', () => {
+            settings.set_int('system-menu-position', (launcherDrop.selected === 0) ? 2 : 3);
         });
+        launcherPosRow.add_suffix(launcherDrop);
+        settingsGroup.add(launcherPosRow);
+        
+        prefsPage.add(settingsGroup);
 
-        settings.connect('changed::system-menu-position', () => {
-            const newPos = settings.get_int('system-menu-position');
-            positionDropdown.set_selected(intToSelection(newPos));
-        });
+        // Group 2: App Picker
+        prefsPage.add(new SystemMenuAppsPicker(settings));
+
+        toolbarView.set_content(prefsPage);
+        page.set_child(toolbarView);
         
-        positionGroup.add(positionRow);
-        
-        // --- Applications List ---
-        this.page.add(new SystemMenuAppsPicker(settings));
+        return page;
     }
 }

@@ -12,6 +12,7 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 // --- User Session Features ---
+import { ClockWeatherFeature } from './modules/clockWeather.js';
 import { MouseBarrierFeature } from './modules/mouseBarrier.js';
 import { ActivitiesButtonFeature } from './modules/activitiesButton.js';
 import { WindowMenuFeature } from './modules/windowMenu.js';
@@ -39,6 +40,7 @@ export default class QuibblesExtension extends Extension {
         this._activitiesFeature = null;
         this._indicatorFeature = null;
         this._systemMenuFeature = null;
+        this._clockWeatherFeature = null;
 
         // --- Properties for Lock Screen ---
         this._lockSettings = null; 
@@ -135,6 +137,11 @@ export default class QuibblesExtension extends Extension {
             this._indicatorFeature = new WorkspaceIndicatorFeature(this._settings);
             this._indicatorFeature.enable(isStartup);
         } catch { }
+        
+        try {
+            this._clockWeatherFeature = new ClockWeatherFeature(this._settings);
+            this._clockWeatherFeature.enable(isStartup);
+        } catch { }
     }
 
     _disableUserSession() {
@@ -156,6 +163,11 @@ export default class QuibblesExtension extends Extension {
         if (this._indicatorFeature) {
             this._indicatorFeature.disable();
             this._indicatorFeature = null;
+        }
+        
+        if (this._clockWeatherFeature) {
+            this._clockWeatherFeature.disable();
+            this._clockWeatherFeature = null;
         }
     }
 

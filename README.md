@@ -17,6 +17,8 @@ The user can:
   - Make the stock workspace indicator button unclickable or replace the stock indicator with a custom version that leads directly to hidden workspaces. Customizable to accommodate multiple visible workspaces and layouts.
 - **Eliminate the mouse barrier to the right of the quick settings icons**
   - Finally go where you've never gone before (to the right monitor at the very top).
+- **Add the current temperature and conditions after the clock**
+  - Adapted from the delightfully elegant [Weather O'Clock](https://github.com/CleoMenezesJr/weather-oclock) by Cleo Menezes Jr.
 - **Change the lockscreen clock font and size**
   - Improve the lockscreen appearance with a simple change.
 - **Unblank the lockscreen**
@@ -47,6 +49,9 @@ Portions of this software are derived from the "Tweaks in System Menu" extension
 (https://github.com/F-i-f/tweaks-system-menu),
 which is licensed under the GNU General Public License v3.0.
 Copyright (c) 2019-2024 F-i-f
+
+Portions of this software are derived from the "Weather O'Clock" extension (https://github.com/CleoMenezesJr/weather-oclock) which is licensed under the GNU General Public License v3.0.
+Copyright (c) 2023-2025 Cleo Menezes Jr.
 
 Portions of this software are also derived from the "Unblank Lockscreen" extension
 (https://github.com/sunwxg/gnome-shell-extension-unblank),
