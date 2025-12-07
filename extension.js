@@ -11,16 +11,19 @@
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-// --- User Session Features ---
+// Root level custom scripts
+import * as EventHandler from './modules/eventHandler.js';
+
+// User Session Features
+import { ActivitiesButtonFeature } from './modules/activitiesButton.js';
 import { ClockWeatherFeature } from './modules/clockWeather.js';
 import { MouseBarrierFeature } from './modules/mouseBarrier.js';
-import { ActivitiesButtonFeature } from './modules/activitiesButton.js';
-import { WindowMenuFeature } from './modules/windowMenu.js';
-import { WorkspaceIndicatorFeature } from './modules/workspaceIndicator.js';
 import { ScreenshotButtonModule } from './modules/screenshotButton.js';
 import { SystemMenuModule } from './modules/systemMenu.js';
+import { WindowMenuFeature } from './modules/windowMenu.js';
+import { WorkspaceIndicatorFeature } from './modules/workspaceIndicator.js';
 
-// --- Lock Screen Features ---
+// Lock Screen Features
 import LockscreenClock from './modules/lockscreenClock.js';
 import LockscreenUnblank from './modules/lockscreenUnblank.js';
 
@@ -142,6 +145,12 @@ export default class QuibblesExtension extends Extension {
             this._clockWeatherFeature = new ClockWeatherFeature(this._settings);
             this._clockWeatherFeature.enable(isStartup);
         } catch { }
+
+        try {
+            EventHandler.enable(this._settings);
+        } catch (e) {
+            console.error(`[Quibbles] Failed to enable EventHandler: ${e.message}`);
+        }
     }
 
     _disableUserSession() {
@@ -168,6 +177,12 @@ export default class QuibblesExtension extends Extension {
         if (this._clockWeatherFeature) {
             this._clockWeatherFeature.disable();
             this._clockWeatherFeature = null;
+        }
+
+        try {
+            EventHandler.disable();
+        } catch (e) {
+            console.error(`[Quibbles] Failed to disable EventHandler: ${e.message}`);
         }
     }
 

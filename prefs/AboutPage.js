@@ -65,7 +65,7 @@ export class AboutPage {
 
          const clamp = new Adw.Clamp({
             child: headerBox,
-            margin_top: 36, // Distance from the top for everything
+            margin_top: 66, // Distance from the top for everything
             margin_bottom: 24,
         });
 

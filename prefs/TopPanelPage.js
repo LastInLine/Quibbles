@@ -227,43 +227,11 @@ export class TopPanelPage {
             title: _('Top Panel'),
             iconName: 'org.gnome.Settings-desktop-sharing-symbolic'
         });
-
-        // --- GROUP 1: Tweaks ---
-        const generalGroup = new Adw.PreferencesGroup({
-            title: _('Tweaks'),
-        });
-        this.page.add(generalGroup);
-
-        // Mouse Barrier
-        generalGroup.add(createSwitch(
-            _('Remove Mouse Barrier'),
-            _('Fence to the right of Status icons when a second monitor is to the right.'),
-            settings,
-            'remove-mouse-barrier'
-        ));
-
-        // Weather
-        generalGroup.add(createSwitch(
-            _('Display Current Weather on the Date Button'),
-            _('Add conditions and temperature to the right of the clock.'),
-            settings,
-            'clock-weather-enabled'
-        ));
         
-        // Quick Settings
-        const qsRow = new Adw.ActionRow({
-            title: _('Quick Settings System Menu'),
-            subtitle: _('Add, remove, or reorder items in the system menu'),
-            activatable: true,
-        });
+        // =====================================
+        // === GROUP 1: Workspace Management ===
+        // =====================================
         
-        qsRow.add_suffix(new Gtk.Image({ icon_name: 'go-next-symbolic' }));
-        qsRow.connect('activated', () => {
-            this.page.get_root().push_subpage(this._createQuickSettingsSubpage(settings));
-        });
-        generalGroup.add(qsRow);
-
-        // --- GROUP 2: Workspace Management ---
         const wsGroup = new Adw.PreferencesGroup({
             title: _('Workspace Management'),
         });
@@ -334,6 +302,87 @@ export class TopPanelPage {
         
         actRow.add_suffix(actDrop);
         wsGroup.add(actRow);
+        
+        // ===============================
+        // === GROUP 2: Date & Weather ===
+        // ===============================
+        
+        const dateMenuGroup = new Adw.PreferencesGroup({
+            title: _('Date &amp; Weather'),
+        });
+        this.page.add(dateMenuGroup);
+
+        // Weather Toggle
+        dateMenuGroup.add(createSwitch(
+            _('Display Current Weather on the Date Button'),
+            _('Add conditions and temperature to the right of the clock.'),
+            settings,
+            'clock-weather-enabled'
+        ));
+
+        // Google Calendar Handler Toggle
+        const gCalSwitchRow = createSwitch(
+            _('Open Events in Google Calendar'),
+            _('Go to selected day in the default browser instead of GNOME Calendar'),
+            settings,
+            'google-calendar-handler-enabled'
+        );
+        dateMenuGroup.add(gCalSwitchRow);
+
+        // Google Calendar View Mode
+        const viewRow = new Adw.ActionRow({ title: _('Google Calendar View') });
+        const viewDrop = new Gtk.DropDown({
+            model: Gtk.StringList.new(['Day', 'Week', 'Month', '4 Week']),
+            valign: Gtk.Align.CENTER,
+            selected: ['day', 'week', 'month', 'customweek'].indexOf(settings.get_string('google-calendar-default-view'))
+        });
+
+        viewDrop.connect('notify::selected', () => {
+            const vals = ['day', 'week', 'month', 'customweek'];
+            settings.set_string('google-calendar-default-view', vals[viewDrop.selected]);
+        });
+
+        // Disable dropdown if the feature is disabled
+        settings.bind(
+            'google-calendar-handler-enabled',
+            viewRow,
+            'sensitive',
+            Gio.SettingsBindFlags.DEFAULT
+        );
+
+        viewRow.add_suffix(viewDrop);
+        dateMenuGroup.add(viewRow);
+        
+        // ==================================
+        // === GROUP 3: Status & Settings ===
+        // ==================================
+        
+        const generalGroup = new Adw.PreferencesGroup({
+            title: _('Status &amp; Settings'),
+        });
+        this.page.add(generalGroup);
+
+        // Mouse Barrier
+        generalGroup.add(createSwitch(
+            _('Remove Mouse Barrier'),
+            _('Fence to the right of Status icons when a second monitor is to the right.'),
+            settings,
+            'remove-mouse-barrier'
+        ));
+
+        // Quick Settings
+        const qsRow = new Adw.ActionRow({
+            title: _('Quick Settings System Menu'),
+            subtitle: _('Add, remove, or reorder items in the system menu'),
+            activatable: true,
+        });
+        
+        qsRow.add_suffix(new Gtk.Image({ icon_name: 'go-next-symbolic' }));
+        qsRow.connect('activated', () => {
+            this.page.get_root().push_subpage(this._createQuickSettingsSubpage(settings));
+        });
+        generalGroup.add(qsRow);
+
     }
 
     _createQuickSettingsSubpage(settings) {

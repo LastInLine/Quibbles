@@ -95,6 +95,26 @@
       <summary>Show weather next to the clock</summary>
     </key>
     
+    <!-- Google Calendar handler toggle -->
+    <key name="google-calendar-handler-enabled" type="b">
+      <default>true</default>
+      <summary>Enable Google Calendar Redirect</summary>
+      <description>Hijacks the GNOME Shell calendar buttons to open Google Calendar in Firefox.</description>
+    </key>
+
+    <!-- Default Google Calendar view -->
+    <key name="google-calendar-default-view" type="s">
+      <default>'month'</default>
+      <summary>Default Calendar View</summary>
+      <description>The view mode to open in Google Calendar (day, week, month, customweek).</description>
+      <choices>
+        <choice value='day'/>
+        <choice value='week'/>
+        <choice value='month'/>
+        <choice value='customweek'/>
+      </choices>
+    </key>
+    
     <!-- === Quick Settings === -->
            
     <key name="remove-mouse-barrier" type="b">
