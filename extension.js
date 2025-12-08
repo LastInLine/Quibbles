@@ -11,12 +11,10 @@
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-// Root level custom scripts
-import * as EventHandler from './modules/eventHandler.js';
-
 // User Session Features
 import { ActivitiesButtonFeature } from './modules/activitiesButton.js';
 import { ClockWeatherFeature } from './modules/clockWeather.js';
+import { EventHandler } from './modules/eventHandler.js';
 import { MouseBarrierFeature } from './modules/mouseBarrier.js';
 import { ScreenshotButtonModule } from './modules/screenshotButton.js';
 import { SystemMenuModule } from './modules/systemMenu.js';
@@ -122,51 +120,67 @@ export default class QuibblesExtension extends Extension {
         if (!this._settings) return;
 
         try {
-            this._barrierFeature = new MouseBarrierFeature(this._settings);
-            this._barrierFeature.enable(isStartup);
-        } catch { }
-
-        try {
             this._activitiesFeature = new ActivitiesButtonFeature(this._settings);
             this._activitiesFeature.enable(isStartup);
-        } catch { }
-
+        } catch (e) {
+            console.error(`[Quibbles] Failed to modify Activities button: ${e.message}`);
+        }
+        
         try {
-            this._systemMenuFeature = new SystemMenuModule(this._settings);
-            this._systemMenuFeature.enable(isStartup);
-        } catch { }
-
-        try {
-            this._indicatorFeature = new WorkspaceIndicatorFeature(this._settings);
-            this._indicatorFeature.enable(isStartup);
-        } catch { }
+            this._barrierFeature = new MouseBarrierFeature(this._settings);
+            this._barrierFeature.enable(isStartup);
+        } catch (e) {
+            console.error(`[Quibbles] Failed to remove mouse barrier: ${e.message}`);
+        }
         
         try {
             this._clockWeatherFeature = new ClockWeatherFeature(this._settings);
             this._clockWeatherFeature.enable(isStartup);
-        } catch { }
+        } catch (e) {
+            console.error(`[Quibbles] Failed to add weather to the date button: ${e.message}`);
+        }
 
         try {
-            EventHandler.enable(this._settings);
+            this._eventHandler = new EventHandler(this._settings);
+            this._eventHandler.enable();
         } catch (e) {
-            console.error(`[Quibbles] Failed to enable EventHandler: ${e.message}`);
+            console.error(`[Quibbles] Failed to enable Google Calendar URL: ${e.message}`);
+        }
+        
+        try {
+            this._indicatorFeature = new WorkspaceIndicatorFeature(this._settings);
+            this._indicatorFeature.enable(isStartup);
+        } catch (e) {
+            console.error(`[Quibbles] Failed to enable workspace indicator: ${e.message}`);
+        }
+
+        try {
+            this._systemMenuFeature = new SystemMenuModule(this._settings);
+            this._systemMenuFeature.enable(isStartup);
+        } catch (e) {
+            console.error(`[Quibbles] Failed to enable Quick Settings launcher: ${e.message}`);
         }
     }
 
     _disableUserSession() {
+        if (this._activitiesFeature) {
+            this._activitiesFeature.disable();
+            this._activitiesFeature = null;
+        }
+        
         if (this._barrierFeature) {
             this._barrierFeature.disable();
             this._barrierFeature = null;
         }
 
-        if (this._activitiesFeature) {
-            this._activitiesFeature.disable();
-            this._activitiesFeature = null;
+        if (this._clockWeatherFeature) {
+            this._clockWeatherFeature.disable();
+            this._clockWeatherFeature = null;
         }
-
-        if (this._systemMenuFeature) {
-            this._systemMenuFeature.disable();
-            this._systemMenuFeature = null;
+        
+        if (this._eventHandler) {
+            this._eventHandler.disable();
+            this._eventHandler = null;
         }
 
         if (this._indicatorFeature) {
@@ -174,18 +188,12 @@ export default class QuibblesExtension extends Extension {
             this._indicatorFeature = null;
         }
         
-        if (this._clockWeatherFeature) {
-            this._clockWeatherFeature.disable();
-            this._clockWeatherFeature = null;
-        }
-
-        try {
-            EventHandler.disable();
-        } catch (e) {
-            console.error(`[Quibbles] Failed to disable EventHandler: ${e.message}`);
+        if (this._systemMenuFeature) {
+            this._systemMenuFeature.disable();
+            this._systemMenuFeature = null;
         }
     }
-
+    
     // --- Session Mode Switching Logic ---
     
     _onSessionModeChanged(session) {
@@ -225,12 +233,16 @@ export default class QuibblesExtension extends Extension {
         try {
             this._windowMenuFeature = new WindowMenuFeature(this._settings);
             this._windowMenuFeature.enable();
-        } catch { }
+        } catch (e) {
+            console.error(`[Quibbles] Failed to modify window context menu: ${e.message}`);
+        }
 
         try {
             this._screenshotButtonFeature = new ScreenshotButtonModule(this._settings);
             this._screenshotButtonFeature.enable();
-        } catch { }
+        } catch (e) {
+            console.error(`[Quibbles] Failed to remove Screenshot button: ${e.message}`);
+        }
         
         // Connect the session mode handler
         this._sessionId = Main.sessionMode.connect('updated',

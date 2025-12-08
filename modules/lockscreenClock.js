@@ -78,10 +78,8 @@ export default class LockscreenClock {
                 
             }
 
-        } catch {
-            // This will fail if the internal GNOME Shell path
-            // `Main.screenShield._dialog._clock._time` changes
-            // Catch and swallow the error so it doesn't crash the shell      
+        } catch (e) {
+            console.warn(`[Quibbles] Lockscreen clock structure changed (font tweak disabled): ${e.message}`);  
         }
     }
 
@@ -91,13 +89,17 @@ export default class LockscreenClock {
             if (this._timeLabel) {
                 this._timeLabel.set_style(this._originalTimeStyle);
             }
-        } catch { }
+        } catch (e) {
+            console.warn(`[Quibbles] Lockscreen clock vanished before it could be reset: ${e.message}`);
+        }
 
         try {
             if (this._settings && this._settingsChangedId) {
                 this._settings.disconnect(this._settingsChangedId);
             }
-        } catch { }
+        } catch (e) {
+             console.warn(`[Quibbles] Couldn't disconnect lockscreen settings (already gone?): ${e.message}`);
+        }
 
         this._timeLabel = null;
         this._originalTimeStyle = null;

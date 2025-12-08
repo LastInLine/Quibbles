@@ -3,208 +3,212 @@
 /**
  * Google Calendar Feature
  *
- * This file contains all the logic to launch Google Calendar on the
- * selected date in the default browser from the Date Menu Event Button.
+ * Launches Google Calendar on the selected date in the default browser.
+ * Refactored into a Class to prevent global state leaks.
  */
 
 'use strict';
 
 import GLib from 'gi://GLib';
 import Clutter from 'gi://Clutter';
+import Gio from 'gi://Gio';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-let _menuSignalId = null;
-let _originalSetDate = null;
-let _originalReloadEvents = null;
-let _currentEventsSection = null;
-let _settings = null;
-let _settingsSignalId = null;
-
-function _launchCurrentDate() {
-    if (!_currentEventsSection || !_currentEventsSection._startDate) return;
-    
-    const rawDate = _currentEventsSection._startDate;
-    let year, month, day;
-
-    if (typeof rawDate.get_day_of_month === 'function') {
-        year = rawDate.get_year();
-        month = rawDate.get_month();
-        day = rawDate.get_day_of_month();
-    } else if (typeof rawDate.getFullYear === 'function') {
-        year = rawDate.getFullYear();
-        month = rawDate.getMonth() + 1;
-        day = rawDate.getDate();
-    } else {
-        return;
+export class EventHandler {
+    constructor(settings) {
+        this._settings = settings;
+        this._menuSignalId = null;
+        this._settingsSignalId = null;
+        this._currentEventsSection = null;
+        this._originalSetDate = null;
+        this._originalReloadEvents = null;
     }
 
-    const viewMode = _settings ? _settings.get_string('google-calendar-default-view') : 'month';
-    const url = `https://calendar.google.com/calendar/r/${viewMode}/${year}/${month}/${day}`;
+    enable() {
+        this._settingsSignalId = this._settings.connect(
+            'changed::google-calendar-handler-enabled',
+            () => this._syncState()
+        );
 
-    const command = `google-calendar.sh "${url}"`;
-    
-    try {
-        GLib.spawn_command_line_async(command);
-    } catch (e) {
-        console.error(`[Quibbles] Launch failed: ${e.message}`);
+        this._syncState();
     }
-}
 
-function _patchRecursively(actor) {
-    if (!actor) return;
+    disable() {
+        if (this._settingsSignalId) {
+            this._settings.disconnect(this._settingsSignalId);
+            this._settingsSignalId = null;
+        }
 
-    if (actor.has_style_class_name && actor.has_style_class_name('events-button')) {
+        this._removeHooks();
+    }
+
+    _syncState() {
+        const isEnabled = this._settings.get_boolean('google-calendar-handler-enabled');
         
-        if (!actor._quibblesHijacked) {
-            
-            // Intercept input before the button sees it
-            const id = actor.connect('captured-event', (widget, event) => {
-                const type = event.type();
-                
-                // 1. Block the Press
-                if (type === Clutter.EventType.BUTTON_PRESS || type === Clutter.EventType.TOUCH_BEGIN) {
-                    return Clutter.EVENT_STOP;
-                }
-
-                // 2. Act on Release
-                if (type === Clutter.EventType.BUTTON_RELEASE || type === Clutter.EventType.TOUCH_END) {
-                     if (event.get_button() === 1) {
-                        Main.panel.statusArea.dateMenu.menu.close();
-                        _launchCurrentDate();
-                        return Clutter.EVENT_STOP;
-                     }
-                }
-                
-                return Clutter.EVENT_PROPAGATE;
-            });
-
-            actor._quibblesHijacked = true;
-            actor._quibblesSignalId = id; // Store ID for cleanup
-        }
-    }
-
-    if (actor.get_children) {
-        actor.get_children().forEach(child => _patchRecursively(child));
-    }
-}
-
-// New helper to remove the interceptors
-function _cleanupHandlers(actor) {
-    if (!actor) return;
-
-    // specific check: if we hijacked it, disconnect and clean up
-    if (actor._quibblesHijacked && actor._quibblesSignalId) {
-        actor.disconnect(actor._quibblesSignalId);
-        actor._quibblesHijacked = false;
-        actor._quibblesSignalId = null;
-    }
-
-    if (actor.get_children) {
-        actor.get_children().forEach(child => _cleanupHandlers(child));
-    }
-}
-
-function _updateView() {
-    if (!_currentEventsSection) return;
-    _patchRecursively(_currentEventsSection);
-}
-
-function _installHooks() {
-    if (_settings && !_settings.get_boolean('google-calendar-handler-enabled')) return;
-
-    const dateMenu = Main.panel.statusArea.dateMenu;
-    if (!dateMenu || !dateMenu._eventsItem) return;
-
-    _currentEventsSection = dateMenu._eventsItem;
-
-    _updateView();
-
-    // Hook setDate to re-patch when calendar navigation happens
-    if (typeof _currentEventsSection.setDate === 'function' && !_currentEventsSection.setDate._isQuibblesPatch) {
-        _originalSetDate = _currentEventsSection.setDate;
-        _currentEventsSection.setDate = function(date) {
-            if (_originalSetDate) _originalSetDate.call(this, date);
-            _updateView();
-        };
-        _currentEventsSection.setDate._isQuibblesPatch = true;
-    }
-
-    // Hook _reloadEvents for internal updates
-    if (typeof _currentEventsSection._reloadEvents === 'function' && !_currentEventsSection._reloadEvents._isQuibblesPatch) {
-        _originalReloadEvents = _currentEventsSection._reloadEvents;
-        _currentEventsSection._reloadEvents = function() {
-            if (_originalReloadEvents) _originalReloadEvents.call(this);
-            GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
-                _updateView();
-                return GLib.SOURCE_REMOVE;
-            });
-        };
-        _currentEventsSection._reloadEvents._isQuibblesPatch = true;
-    }
-}
-
-function _removeHooks() {
-    const dateMenu = Main.panel.statusArea.dateMenu;
-    if (dateMenu && dateMenu.menu && _menuSignalId) {
-        dateMenu.menu.disconnect(_menuSignalId);
-        _menuSignalId = null;
-    }
-    
-    if (_currentEventsSection) {
-        // 1. Clean up our captured-event handlers
-        _cleanupHandlers(_currentEventsSection);
-
-        // 2. Restore original methods
-        if (_originalSetDate) {
-            _currentEventsSection.setDate = _originalSetDate;
-            _originalSetDate = null;
-        }
-        if (_originalReloadEvents) {
-            _currentEventsSection._reloadEvents = _originalReloadEvents;
-            _originalReloadEvents = null;
-        }
-        
-        // 3. Force a reload to ensure UI state is clean (optional but safe)
-        if (_currentEventsSection._reloadEvents) {
-             try { _currentEventsSection._reloadEvents(); } catch{}
-        }
-    }
-    _currentEventsSection = null;
-}
-
-export function enable(settings) {
-    _settings = settings;
-
-    if (_settings) {
-        _settingsSignalId = _settings.connect('changed::google-calendar-handler-enabled', () => {
-            if (_settings.get_boolean('google-calendar-handler-enabled')) {
-                const dateMenu = Main.panel.statusArea.dateMenu;
-                if (dateMenu && dateMenu.menu && !_menuSignalId) {
-                    _menuSignalId = dateMenu.menu.connect('open-state-changed', (menu, isOpen) => {
-                        if (isOpen) _installHooks();
-                    });
-                }
-            } else {
-                _removeHooks();
+        if (isEnabled) {
+            const dateMenu = Main.panel.statusArea.dateMenu;
+            if (dateMenu && dateMenu.menu && !this._menuSignalId) {
+                this._menuSignalId = dateMenu.menu.connect('open-state-changed', (menu, isOpen) => {
+                    if (isOpen) this._installHooks();
+                });
             }
-        });
+        } else {
+            this._removeHooks();
+        }
     }
 
-    if (_settings && !_settings.get_boolean('google-calendar-handler-enabled')) return;
+    _installHooks() {
+        const dateMenu = Main.panel.statusArea.dateMenu;
+        if (!dateMenu || !dateMenu._eventsItem) return;
 
-    const dateMenu = Main.panel.statusArea.dateMenu;
-    if (dateMenu && dateMenu.menu) {
-        _menuSignalId = dateMenu.menu.connect('open-state-changed', (menu, isOpen) => {
-            if (isOpen) _installHooks();
-        });
-    }
-}
+        this._currentEventsSection = dateMenu._eventsItem;
 
-export function disable() {
-    if (_settings && _settingsSignalId) {
-        _settings.disconnect(_settingsSignalId);
-        _settingsSignalId = null;
+        // Patch the current view immediately
+        this._updateView();
+
+        // Hook setDate to re-patch when user changes months
+        if (typeof this._currentEventsSection.setDate === 'function' && !this._currentEventsSection.setDate._isQuibblesPatch) {
+            this._originalSetDate = this._currentEventsSection.setDate;
+            this._currentEventsSection.setDate = (date) => {
+                if (this._originalSetDate) this._originalSetDate.call(this._currentEventsSection, date);
+                this._updateView();
+            };
+            this._currentEventsSection.setDate._isQuibblesPatch = true;
+        }
+
+        // Hook _reloadEvents for internal updates
+        if (typeof this._currentEventsSection._reloadEvents === 'function' && !this._currentEventsSection._reloadEvents._isQuibblesPatch) {
+            this._originalReloadEvents = this._currentEventsSection._reloadEvents;
+            this._currentEventsSection._reloadEvents = () => {
+                if (this._originalReloadEvents) this._originalReloadEvents.call(this._currentEventsSection);
+                
+                // Wait for the UI to rebuild, then patch again
+                GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+                    this._updateView();
+                    return GLib.SOURCE_REMOVE;
+                });
+            };
+            this._currentEventsSection._reloadEvents._isQuibblesPatch = true;
+        }
     }
-    _settings = null;
-    _removeHooks();
+
+    _removeHooks() {
+        const dateMenu = Main.panel.statusArea.dateMenu;
+        
+        // Disconnect the menu open listener
+        if (dateMenu && dateMenu.menu && this._menuSignalId) {
+            dateMenu.menu.disconnect(this._menuSignalId);
+            this._menuSignalId = null;
+        }
+        
+        if (this._currentEventsSection) {
+            // Remove event interception
+            this._cleanupHandlers(this._currentEventsSection);
+
+            // Restore the original GNOME methods
+            if (this._originalSetDate) {
+                this._currentEventsSection.setDate = this._originalSetDate;
+                this._originalSetDate = null;
+            }
+            if (this._originalReloadEvents) {
+                this._currentEventsSection._reloadEvents = this._originalReloadEvents;
+                this._originalReloadEvents = null;
+            }
+            
+            // Force a reload so the UI goes back to normal
+            try { 
+                if (this._currentEventsSection._reloadEvents) {
+                    this._currentEventsSection._reloadEvents(); 
+                }
+            } catch (e) {
+                console.warn(`[Quibbles] Cleanup reload warning: ${e.message}`);
+            }
+        }
+        this._currentEventsSection = null;
+    }
+
+    _updateView() {
+        if (!this._currentEventsSection) return;
+        this._patchRecursively(this._currentEventsSection);
+    }
+
+    // Walks down the widget tree to find the buttons
+    _patchRecursively(actor) {
+        if (!actor) return;
+
+        if (actor.has_style_class_name && actor.has_style_class_name('events-button')) {
+            if (!actor._quibblesHijacked) {
+
+                // This intercepts the click before the button sees it.
+                const id = actor.connect('captured-event', (widget, event) => {
+                    const type = event.type();
+                    
+                    // Stop Press (prevents button animation/logic)
+                    if (type === Clutter.EventType.BUTTON_PRESS || type === Clutter.EventType.TOUCH_BEGIN) {
+                        return Clutter.EVENT_STOP;
+                    }
+
+                    // Handle Release (Launch our URL, stop propagation)
+                    if (type === Clutter.EventType.BUTTON_RELEASE || type === Clutter.EventType.TOUCH_END) {
+                         if (event.get_button() === 1) {
+                            Main.panel.statusArea.dateMenu.menu.close();
+                            this._launchCurrentDate();
+                            return Clutter.EVENT_STOP; // <--- Prevents the Double Open
+                         }
+                    }
+                    
+                    return Clutter.EVENT_PROPAGATE;
+                });
+
+                actor._quibblesHijacked = true;
+                actor._quibblesSignalId = id; 
+            }
+        }
+
+        if (actor.get_children) {
+            actor.get_children().forEach(child => this._patchRecursively(child));
+        }
+    }
+
+    _cleanupHandlers(actor) {
+        if (!actor) return;
+
+        if (actor._quibblesHijacked && actor._quibblesSignalId) {
+            actor.disconnect(actor._quibblesSignalId);
+            actor._quibblesHijacked = false;
+            actor._quibblesSignalId = null;
+        }
+
+        if (actor.get_children) {
+            actor.get_children().forEach(child => this._cleanupHandlers(child));
+        }
+    }
+
+    _launchCurrentDate() {
+        if (!this._currentEventsSection || !this._currentEventsSection._startDate) return;
+        
+        const rawDate = this._currentEventsSection._startDate;
+        let year, month, day;
+
+        if (typeof rawDate.get_day_of_month === 'function') {
+            year = rawDate.get_year();
+            month = rawDate.get_month();
+            day = rawDate.get_day_of_month();
+        } else if (typeof rawDate.getFullYear === 'function') {
+            year = rawDate.getFullYear();
+            month = rawDate.getMonth() + 1;
+            day = rawDate.getDate();
+        } else {
+            return;
+        }
+
+        const viewMode = this._settings.get_string('google-calendar-default-view');
+        const url = `https://calendar.google.com/calendar/r/${viewMode}/${year}/${month}/${day}`;
+
+        try {
+            Gio.AppInfo.launch_default_for_uri(url, null);
+        } catch (e) {
+            console.error(`[Quibbles] Failed to send Google Calendar URL: ${e.message}`);
+        }
+    }
 }

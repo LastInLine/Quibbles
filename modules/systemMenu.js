@@ -100,7 +100,9 @@ export class SystemMenuModule {
 
             this._onApplicationsChange();
 
-        } catch { }
+        } catch (e) {
+            console.warn(`[Quibbles] System menu layout not found or changed: ${e.message}`);
+        }
     }
 
     disable() {
@@ -136,7 +138,8 @@ export class SystemMenuModule {
         try {
             this._systemItemChild.remove_child(button);
             button.destroy();
-        } catch {
+        } catch (e) {
+            console.warn(`[Quibbles] Failed to clean up launcher for ${appId}: ${e.message}`);
         }
     }
 
