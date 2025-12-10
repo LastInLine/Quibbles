@@ -272,6 +272,13 @@ export class TopPanelPage {
         posRow.add_suffix(posBox);
         wsGroup.add(posRow);
 
+        settings.bind(
+            'enable-workspace-indicator',
+            posRow,
+            'sensitive',
+            Gio.SettingsBindFlags.DEFAULT
+        );
+
         // Hide Indices
         const hideIndicesRow = new Adw.ActionRow({
             title: _('Hide Workspaces from Menu'),
@@ -286,6 +293,13 @@ export class TopPanelPage {
         settings.bind('hide-workspace-indices', entry, 'text', Gio.SettingsBindFlags.DEFAULT);
         hideIndicesRow.add_suffix(entry);
         wsGroup.add(hideIndicesRow);
+
+        settings.bind(
+            'enable-workspace-indicator',
+            hideIndicesRow,
+            'sensitive',
+            Gio.SettingsBindFlags.DEFAULT
+        );
         
         // Activiites Button
         const actRow = new Adw.ActionRow({ title: _('Activities Button') });

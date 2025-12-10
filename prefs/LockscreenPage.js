@@ -5,6 +5,7 @@
  */
 
 import Adw from 'gi://Adw';
+import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 import { gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import { createSwitch } from './utils.js';
@@ -16,7 +17,10 @@ export class LockscreenPage {
             iconName: 'system-lock-screen-symbolic'
         });
 
-        // --- GROUP 1: Lockscreen Clock ---
+        // =================================
+        // === GROUP 1: Lockscreen Clock ===
+        // =================================
+        
         const clockGroup = new Adw.PreferencesGroup({
             title: _('Lockscreen Clock'),
         });
@@ -59,7 +63,10 @@ export class LockscreenPage {
             fontButton.set_font('');
         });
 
-        // --- GROUP 2: Lockscreen Unblank ---
+        // ===================================
+        // === GROUP 2: Lockscreen Unblank ===
+        // ===================================
+        
         const unblankGroup = new Adw.PreferencesGroup({
             title: _('Lockscreen Unblank'),
             description: _('Delays or prevents the lock screen from fading to black.'),
@@ -75,18 +82,27 @@ export class LockscreenPage {
         ));
 
         // AC Power setting
-        unblankGroup.add(createSwitch(
+        const powerRow = createSwitch(
             _('Unblank Only on AC Power'),
             null,
             settings,
             'power'
-        ));
+        );
+        unblankGroup.add(powerRow);
+        
+        settings.bind(
+            'enable-unblank',
+            powerRow,
+            'sensitive',
+            Gio.SettingsBindFlags.DEFAULT
+        );
         
         // Timeout widget
         const timeRow = new Adw.ActionRow({
             title: _('Time until blank'),
         });
         
+        // Dropdown logic
         const timeoutStrings = [
             _('Never'), _('5 minutes'), _('10 minutes'), _('15 minutes'),
             _('30 minutes'), _('60 minutes'), _('90 minutes'), _('120 minutes')
@@ -110,5 +126,12 @@ export class LockscreenPage {
         timeRow.add_suffix(timeoutDropdown);
         timeRow.set_activatable_widget(timeoutDropdown);
         unblankGroup.add(timeRow);
+
+        settings.bind(
+            'enable-unblank',
+            timeRow,
+            'sensitive',
+            Gio.SettingsBindFlags.DEFAULT
+        );
     }
 }
