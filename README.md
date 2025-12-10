@@ -13,27 +13,42 @@ The user of this extension can:
 
 - **Trim and reorder the Window Context Menu**
   - Remove items from the title bar context menu and put them into an order that makes sense to you. Useful when used with a tiling window manager that doesn't have some concepts.
+  
   ![Customized title bar context menu](images/window-menu.png)
+  
 - **Get rid of the Overview**
   - Make the stock workspace indicator button unclickable or replace the stock indicator with a custom version that leads directly to hidden workspaces rather than having them behind a context change.
   - Customizable to accommodate multiple visible workspaces and layouts.
   - Friendly names accommodated but not provided by this extension.
+
+https://github.com/user-attachments/assets/0664e52f-6d27-4b90-bbc1-bc5374a9c17e
+
+
 - **Eliminate the mouse barrier to the right of the quick settings icons**
   - Finally go where you've never gone before (which is to the right monitor at the very top).
+
+    https://github.com/user-attachments/assets/9e8f998e-c60f-40ce-9840-841b1c4a21ee
+    
 - **Have the selected date in the date menu go to the actual date in Google Calendar rather than the current date in GNOME Calendar**
   - Wonder in amazement at a button now leading to the place it has written on it.
 - **Add the current temperature and conditions after the clock**
   - Wanting to know what the weather is now rather than an hour from now which is all that is displayed in the menu? This addresses that vexing concern.
   - Adapted from the delightfully elegant [Weather O'Clock](https://github.com/CleoMenezesJr/weather-oclock) by Cleo Menezes Jr.
+  
   ![Weather on the date menu button](images/date-weather.png)
+  
 - **Unblank the lockscreen**
   - Wishing there was some kind of state between "awake and in use" and "monitors off"? That's right, that thing that's been on every computer for decades has returned in a degraded, less aesthetically variable state.
   - Used with attribution from the excellent [Unblank lock screen](https://github.com/sunwxg/gnome-shell-extension-unblank) by Xiaoguang Wang.
 - **Change the lockscreen clock font and size**
   - Improve the lockscreen appearance with a simple change to the incredibly ugly defaults. Pleasant if you've decided to let it linger on the screen using the previous feature.
+
+https://github.com/user-attachments/assets/27dcd960-2c69-4b53-be29-d8f2072f93f5
+
 - **Add shortcuts to the system icon row in the Quick Settings menu**
   - Do you find it odd that there's a screenshot button next to the Settings button as though they were related? Do you wish there were links here to frequently used applications that should be in the Settings but aren't such as Tweaks or Extensions? Are you missing a tray where you could drop links to arbitrary applications for quick access which has been a feature common across operating systems for thirty years? If the answer to any of those questions is "yes" then you might like this feature.
   - Adapted from my longtime favorite [Tweaks & Extensions in System Menu](https://github.com/F-i-f/tweaks-system-menu) by Philippe Troin (F-i-f).
+  
   ![System menu launcher](images/quick-settings-launcher.png)
 
 ## Preferences
