@@ -27,17 +27,12 @@ export class ScreenshotButtonModule {
             () => this._updateVisibility()
         );
 
-        // Poll for the existence of the screenshot button
         this._timeoutId = waitFor(
             () => {
-                // Attempt to find the button.
-                // If found, _button is set to the object.
-                // Returns true if found, false otherwise.
                 this._findAndToggleButton();
                 return this._button !== null;
             },
             () => {
-                // Once found, ensure the correct visibility state is applied.
                 this._updateVisibility();
                 this._timeoutId = null;
             }
@@ -55,18 +50,13 @@ export class ScreenshotButtonModule {
             this._timeoutId = null;
         }
 
-        // Always restore visibility on disable
         if (this._button) {
             this._button.visible = true;
         }
 
         this._button = null;
     }
-
-    /**
-     * Finds the button object in the UI hierarchy.
-     * Sets this._button if found.
-     */
+    
     _findAndToggleButton() {
         if (this._button) {
             return;
@@ -74,8 +64,6 @@ export class ScreenshotButtonModule {
 
         try {
             const quickSettings = Main.panel.statusArea.quickSettings;
-
-            // Navigate the internal hierarchy to find the system item container
             const systemItemChild = quickSettings._system?._systemItem?.child;
             
             if (!systemItemChild) {

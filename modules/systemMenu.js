@@ -55,7 +55,6 @@ export class SystemMenuModule {
 
         this._appsChangedId = null;
         this._posChangedId = null;
-        // Store the original button
         this._originalSettingsButton = null;
     }
 
@@ -135,12 +134,10 @@ export class SystemMenuModule {
     }
 
     _removeAppLauncher(appId, button) {
-        try {
+        if (this._systemItemChild && button.get_parent() === this._systemItemChild) {
             this._systemItemChild.remove_child(button);
-            button.destroy();
-        } catch (e) {
-            console.warn(`[Quibbles] Failed to clean up launcher for ${appId}: ${e.message}`);
         }
+        button.destroy();
     }
 
     _onApplicationsChange() {

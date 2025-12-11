@@ -2,7 +2,7 @@
 
 // This is a refactored version of the "Unblank Lockscreen" extension
 // by sun.wxg@gmail.com, which is licensed under the MIT License.
-// We are using it in accordance with that license.
+// Adapted from and used in accordance with that license.
 
 /**
  * Lockscreen Unblank Feature
@@ -21,7 +21,6 @@ import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 import * as Overview from 'resource:///org/gnome/shell/ui/overview.js';
 import { loadInterfaceXML } from 'resource:///org/gnome/shell/misc/fileUtils.js';
 
-// --- DBus and Interface Definitions ---
 const UPowerIface = loadInterfaceXML('org.freedesktop.UPower');
 const UPowerProxy = Gio.DBusProxy.makeProxyWrapper(UPowerIface);
 
@@ -36,17 +35,13 @@ const DisplayConfigIface = `
 </node>`;
 const DisplayConfigProxy = Gio.DBusProxy.makeProxyWrapper(DisplayConfigIface);
 
-// --- Module-scoped variable to hold the Unblank instance ---
 let unblankInstance = null;
 
-// --- Core Unblank Class ---
-// This holds settings, state, and original functions
 class Unblank {
     constructor(settings) {
         this.gsettings = settings;
         this.proxy = new DisplayConfigProxy(Gio.DBus.session, BUS_NAME, OBJECT_PATH, () => {});
 
-        // Store original functions
         this.setActiveOrigin = Main.screenShield._setActive;
         this.activateFadeOrigin = Main.screenShield._activateFade;
         this.resetLockScreenOrigin = Main.screenShield._resetLockScreen;
@@ -80,7 +75,6 @@ class Unblank {
     }
 
     disable() {
-        // Restore original functions
         Main.screenShield._setActive = this.setActiveOrigin;
         Main.screenShield._activateFade = this.activateFadeOrigin;
         Main.screenShield._resetLockScreen = this.resetLockScreenOrigin;
@@ -108,10 +102,6 @@ class Unblank {
         }
     }
 }
-
-// --- Overridden (Patched) Functions ---
-// These are the new implementations that will be called by GNOME Shell.
-// They all rely on the 'unblankInstance' variable.
 
 function _setActive(active) {
     const prevIsActive = this._isActive;
@@ -155,7 +145,6 @@ function _activateFade(lightbox, time) {
 }
 
 function _onUserBecameActive() {
-    // Call original
     unblankInstance.onUserBecameActiveOrigin.call(Main.screenShield);
 
     if (this._becameActiveId !== 0) {
@@ -210,8 +199,6 @@ function _resetLockScreen(params) {
     this._dialog.grab_key_focus();
 }
 
-// --- Timer and Power Functions ---
-
 function _changeToBlank() {
     if (!unblankInstance._activeOnce) {
         Main.screenShield.emit('active-changed');
@@ -245,7 +232,6 @@ function _turnOnMonitor() {
     }
 }
 
-// --- Main Exported Class ---
 export default class LockscreenUnblank {
     
     constructor() {

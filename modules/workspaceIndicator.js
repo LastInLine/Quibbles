@@ -45,7 +45,6 @@ class MyIndicator extends PanelMenu.Button {
         menuHeader.label.style = 'font-size: 0.8em; font-weight: bold; color: #c0c0c0;';
         this.menu.addMenuItem(menuHeader);
 
-        // Get and parse the list of indices to hide
         const indicesToHideStr = this._settings.get_string('hide-workspace-indices');
         const indicesToHide = new Set(
             indicesToHideStr.split(',')
@@ -97,10 +96,7 @@ export class WorkspaceIndicatorFeature {
         this._positionSettingId = null;
         this._indexSettingId = null;
     }
-
-    /**
-     * Enables the feature, connects to settings, and applies the current setting.
-     */
+    
     enable() {
         this._settingsConnection = this._settings.connect(
             'changed::enable-workspace-indicator',
@@ -125,9 +121,6 @@ export class WorkspaceIndicatorFeature {
         this._updateWorkspaceIndicator();
     }
 
-    /**
-     * Disables the feature, cleans up listeners, and destroys the indicator.
-     */
     disable() {
         if (this._settingsConnection) {
             this._settings.disconnect(this._settingsConnection);
@@ -152,9 +145,6 @@ export class WorkspaceIndicatorFeature {
         this._destroyIndicator();
     }
 
-    /**
-     * Enables or disables the workspace indicator feature based on its setting.
-     */
     _updateWorkspaceIndicator() {
         if (this._settings.get_boolean('enable-workspace-indicator')) {
             if (!this._indicator) {
@@ -177,10 +167,6 @@ export class WorkspaceIndicatorFeature {
         }
     }
 
-    /**
-     * Destroys and recreates the indicator; called when the
-     * active workspace, hide list, or position settings changes.
-     */
     _rebuildIndicator() {
         if (!this._indicator) return;
 
@@ -192,9 +178,6 @@ export class WorkspaceIndicatorFeature {
         Main.panel.addToStatusArea('quibbles-workspace-indicator', this._indicator, index, position);
     }
 
-    /**
-     * Cleanly destroy the workspace indicator and its signal listener.
-     */
     _destroyIndicator() {
         if (this._workspaceChangedId) {
             global.workspace_manager.disconnect(this._workspaceChangedId);

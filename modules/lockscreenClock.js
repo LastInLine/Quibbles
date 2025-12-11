@@ -16,7 +16,6 @@ export default class LockscreenClock {
     
     _settings = null;
     _timeLabel = null;
-    // Caches the clock's original CSS to restore it on disable
     _originalTimeStyle = null;
     _settingsChangedId = null;
 
@@ -24,8 +23,7 @@ export default class LockscreenClock {
     }
 
     /**
-     * Parses the GSettings font string to build
-     * a CSS string to apply to the time label
+     * Build a CSS string to apply to the time label
      */
     _applyStyle() {
         if (!this._timeLabel) {
@@ -61,7 +59,8 @@ export default class LockscreenClock {
         this._settings = settings;
         
         try {
-            // Nested path to the internal clock widget
+            // Current path to the internal clock widget
+            // If the extension breaks, look here first
             const clock = Main.screenShield._dialog._clock;
             
             if (clock && clock._time) {
@@ -73,9 +72,7 @@ export default class LockscreenClock {
                     this._applyStyle();
                 });
 
-                // Apply the style once on load
                 this._applyStyle();
-                
             }
 
         } catch (e) {
@@ -84,21 +81,12 @@ export default class LockscreenClock {
     }
 
     disable() {
-        try {
-            // Restore the original CSS style on disable
-            if (this._timeLabel) {
-                this._timeLabel.set_style(this._originalTimeStyle);
-            }
-        } catch (e) {
-            console.warn(`[Quibbles] Lockscreen clock vanished before it could be reset: ${e.message}`);
+        if (this._timeLabel) {
+            this._timeLabel.set_style(this._originalTimeStyle);
         }
 
-        try {
-            if (this._settings && this._settingsChangedId) {
-                this._settings.disconnect(this._settingsChangedId);
-            }
-        } catch (e) {
-             console.warn(`[Quibbles] Couldn't disconnect lockscreen settings (already gone?): ${e.message}`);
+        if (this._settings && this._settingsChangedId) {
+            this._settings.disconnect(this._settingsChangedId);
         }
 
         this._timeLabel = null;

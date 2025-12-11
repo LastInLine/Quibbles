@@ -11,7 +11,6 @@ import GObject from 'gi://GObject';
 import { gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 const ALL_MENU_ITEMS = [
-    'Scratch',
     'Take Screenshot',
     'Hide',
     'Maximize',
@@ -26,6 +25,7 @@ const ALL_MENU_ITEMS = [
     'Close',
 ];
 
+// List Builder - holds reset button
 const WindowMenuBuilder = GObject.registerClass(
     class WindowMenuBuilder extends Adw.PreferencesGroup {
         constructor(settings) {
@@ -37,7 +37,6 @@ const WindowMenuBuilder = GObject.registerClass(
             this._settings = settings;
             this._displayedRows = [];
 
-            // --- Header Buttons ---
             const headerBox = new Gtk.Box({
                 spacing: 6,
                 orientation: Gtk.Orientation.HORIZONTAL,
@@ -65,7 +64,6 @@ const WindowMenuBuilder = GObject.registerClass(
 
             this.set_header_suffix(headerBox);
 
-            // --- Listeners ---
             this._settings.connect(
                 'changed::visible-items',
                 this._refreshList.bind(this)
@@ -75,7 +73,6 @@ const WindowMenuBuilder = GObject.registerClass(
         }
 
         _onAdd() {
-            // --- Dialog Setup ---
             const dialog = new Adw.Window({
                 transient_for: this.get_root(),
                 modal: true,
@@ -89,20 +86,43 @@ const WindowMenuBuilder = GObject.registerClass(
             toolbarView.add_top_bar(headerBar);
 
             const page = new Adw.PreferencesPage();
-            const group = new Adw.PreferencesGroup();
-            page.add(group);
-
-            const scrolled = new Gtk.ScrolledWindow({
+            const scroll = new Gtk.ScrolledWindow({
                 hscrollbar_policy: Gtk.PolicyType.NEVER,
                 propagate_natural_height: true,
+                child: page,
             });
-            scrolled.set_child(page);
-            toolbarView.set_content(scrolled);
-            
+            toolbarView.set_content(scroll);
             dialog.set_content(toolbarView);
 
-            // --- Populate List ---
             const currentItems = this._settings.get_strv('visible-items');
+
+            // --- SECTION 1: Add Custom Item ---
+            const customGroup = new Adw.PreferencesGroup({
+                title: _('Custom Item'),
+                description: _('Add an item added by another extension (e.g. "Scratch").'),
+            });
+            page.add(customGroup);
+
+            const customEntry = new Adw.EntryRow({
+                title: _('Item Label'),
+                show_apply_button: true,
+            });
+            
+            customEntry.connect('apply', () => {
+                const text = customEntry.text.trim();
+                if (text && !currentItems.includes(text)) {
+                    const newList = [...currentItems, text];
+                    this._settings.set_strv('visible-items', newList);
+                    dialog.close();
+                }
+            });
+            customGroup.add(customEntry);
+
+            // --- SECTION 2: Standard Items ---
+            const group = new Adw.PreferencesGroup({
+                title: _('Standard Items'),
+            });
+            page.add(group);
 
             const addOption = (name, isSeparator = false) => {
                 const row = new Adw.ActionRow({
@@ -129,6 +149,7 @@ const WindowMenuBuilder = GObject.registerClass(
             addOption('SEPARATOR', true);
 
             ALL_MENU_ITEMS.forEach(item => {
+                // Don't show items that are already in the list
                 if (!currentItems.includes(item)) {
                     addOption(item);
                 }
@@ -151,7 +172,6 @@ const WindowMenuBuilder = GObject.registerClass(
 
                 const row = new Adw.ActionRow({ title: title });
 
-                // --- Row Controls ---
                 const box = new Gtk.Box({
                     orientation: Gtk.Orientation.HORIZONTAL,
                     spacing: 6,
@@ -205,6 +225,10 @@ const WindowMenuBuilder = GObject.registerClass(
     }
 );
 
+// =================
+// === MAIN PAGE ===
+// =================
+
 export class WindowMenuPage {
     constructor(settings) {
         this.page = new Adw.PreferencesPage({
@@ -212,6 +236,10 @@ export class WindowMenuPage {
             iconName: 'open-menu-symbolic'
         });
 
+        // ==============================
+        // === GROUP 1: Master Switch ===
+        // ==============================
+        
         const masterGroup = new Adw.PreferencesGroup();
         this.page.add(masterGroup);
 
@@ -227,6 +255,10 @@ export class WindowMenuPage {
             Gio.SettingsBindFlags.DEFAULT
         );
 
+        // ===========================
+        // === GROUP 2: Menu Items ===
+        // ===========================
+        
         const builderGroup = new WindowMenuBuilder(settings);
         this.page.add(builderGroup);
 

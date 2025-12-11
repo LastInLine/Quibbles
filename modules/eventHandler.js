@@ -4,7 +4,6 @@
  * Google Calendar Feature
  *
  * Launches Google Calendar on the selected date in the default browser.
- * Refactored into a Class to prevent global state leaks.
  */
 
 'use strict';
@@ -62,11 +61,9 @@ export class EventHandler {
         if (!dateMenu || !dateMenu._eventsItem) return;
 
         this._currentEventsSection = dateMenu._eventsItem;
-
-        // Patch the current view immediately
+        
         this._updateView();
 
-        // Hook setDate to re-patch when user changes months
         if (typeof this._currentEventsSection.setDate === 'function' && !this._currentEventsSection.setDate._isQuibblesPatch) {
             this._originalSetDate = this._currentEventsSection.setDate;
             this._currentEventsSection.setDate = (date) => {
@@ -76,7 +73,6 @@ export class EventHandler {
             this._currentEventsSection.setDate._isQuibblesPatch = true;
         }
 
-        // Hook _reloadEvents for internal updates
         if (typeof this._currentEventsSection._reloadEvents === 'function' && !this._currentEventsSection._reloadEvents._isQuibblesPatch) {
             this._originalReloadEvents = this._currentEventsSection._reloadEvents;
             this._currentEventsSection._reloadEvents = () => {
@@ -95,27 +91,26 @@ export class EventHandler {
     _removeHooks() {
         const dateMenu = Main.panel.statusArea.dateMenu;
         
-        // Disconnect the menu open listener
         if (dateMenu && dateMenu.menu && this._menuSignalId) {
             dateMenu.menu.disconnect(this._menuSignalId);
             this._menuSignalId = null;
         }
         
         if (this._currentEventsSection) {
-            // Remove event interception
             this._cleanupHandlers(this._currentEventsSection);
-
-            // Restore the original GNOME methods
+            
             if (this._originalSetDate) {
                 this._currentEventsSection.setDate = this._originalSetDate;
                 this._originalSetDate = null;
             }
+            
             if (this._originalReloadEvents) {
                 this._currentEventsSection._reloadEvents = this._originalReloadEvents;
                 this._originalReloadEvents = null;
             }
             
             // Force a reload so the UI goes back to normal
+            // Try-catch in case internal methods change
             try { 
                 if (this._currentEventsSection._reloadEvents) {
                     this._currentEventsSection._reloadEvents(); 
@@ -132,28 +127,25 @@ export class EventHandler {
         this._patchRecursively(this._currentEventsSection);
     }
 
-    // Walks down the widget tree to find the buttons
     _patchRecursively(actor) {
         if (!actor) return;
 
         if (actor.has_style_class_name && actor.has_style_class_name('events-button')) {
             if (!actor._quibblesHijacked) {
 
-                // This intercepts the click before the button sees it.
+                // This prevents the button from performing default behavior
                 const id = actor.connect('captured-event', (widget, event) => {
                     const type = event.type();
                     
-                    // Stop Press (prevents button animation/logic)
                     if (type === Clutter.EventType.BUTTON_PRESS || type === Clutter.EventType.TOUCH_BEGIN) {
                         return Clutter.EVENT_STOP;
                     }
 
-                    // Handle Release (Launch our URL, stop propagation)
                     if (type === Clutter.EventType.BUTTON_RELEASE || type === Clutter.EventType.TOUCH_END) {
                          if (event.get_button() === 1) {
                             Main.panel.statusArea.dateMenu.menu.close();
                             this._launchCurrentDate();
-                            return Clutter.EVENT_STOP; // <--- Prevents the Double Open
+                            return Clutter.EVENT_STOP;
                          }
                     }
                     

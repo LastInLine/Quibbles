@@ -97,12 +97,11 @@ export class LockscreenPage {
             Gio.SettingsBindFlags.DEFAULT
         );
         
-        // Timeout widget
+        // Timeout
         const timeRow = new Adw.ActionRow({
             title: _('Time until blank'),
         });
-        
-        // Dropdown logic
+
         const timeoutStrings = [
             _('Never'), _('5 minutes'), _('10 minutes'), _('15 minutes'),
             _('30 minutes'), _('60 minutes'), _('90 minutes'), _('120 minutes')

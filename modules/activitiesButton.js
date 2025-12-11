@@ -3,8 +3,8 @@
 /**
  * Activities Button Feature
  *
- * This file contains all the logic for modifying the
- * behavior on click of the 'Activities' button in the top panel.
+ * This file contains all the logic for modifying the behavior
+ *  or presence of the 'Activities' button in the top panel.
  */
  
 'use strict';
@@ -18,16 +18,11 @@ export class ActivitiesButtonFeature {
         this._settings = settings;
         this._settingsConnection = null;
         this._activitiesButton = null; 
-        // Used in disable() to restore the button to its pre-extension state
         this._originalActivitiesState = { reactive: true, visible: true };
         this._timeoutId = null;
     }
-
-    /**
-     * Enables the feature, connects to settings, and applies the current setting.
-     */
+    
     enable() {
-        // Poll for the existence of the Activities button in the panel
         this._timeoutId = waitFor(
             () => {
                 try {
@@ -56,10 +51,7 @@ export class ActivitiesButtonFeature {
 
         this._updateActivitiesButton();
     }
-
-    /**
-     * Disables the feature, cleans up listeners, and restores the button.
-     */
+    
     disable() {
         if (this._timeoutId) {
             GLib.source_remove(this._timeoutId);
@@ -70,8 +62,7 @@ export class ActivitiesButtonFeature {
             this._settings.disconnect(this._settingsConnection);
             this._settingsConnection = null;
         }
-
-        // Restore the button to its original, pre-extension state
+        
         if (this._activitiesButton) {
             this._activitiesButton.reactive = this._originalActivitiesState.reactive;
             this._activitiesButton.container.visible = this._originalActivitiesState.visible;
@@ -79,11 +70,7 @@ export class ActivitiesButtonFeature {
         
         this._activitiesButton = null;
     }
-
-    /**
-     * Reads the setting and applies the correct state (hidden,
-     * unclickable, or default) to the Activities button.
-     */
+    
     _updateActivitiesButton() {
         if (!this._activitiesButton) return;
         

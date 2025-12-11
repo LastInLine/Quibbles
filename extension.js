@@ -119,6 +119,8 @@ export default class QuibblesExtension extends Extension {
     _enableUserSession(isStartup = false) {
         if (!this._settings) return;
 
+        // Try-catch used on each module to prevent one module from taking down the extension
+        
         try {
             this._activitiesFeature = new ActivitiesButtonFeature(this._settings);
             this._activitiesFeature.enable(isStartup);
@@ -198,11 +200,10 @@ export default class QuibblesExtension extends Extension {
     
     _onSessionModeChanged(session) {
         if (session.currentMode === 'unlock-dialog') {
-            // We are ON the lock screen
+            // We are on the LOCKSCREEN
             this._disableUserSession();
             this._enableLockScreen();
 
-            // Connect to the unlock dialog's destroy signal
             this._unlockDialog = Main.screenShield._unlockDialog;
             if (this._unlockDialog && !this._unlockDialogDestroyId) {
                 this._unlockDialogDestroyId = this._unlockDialog.connect('destroy', () => {
@@ -213,7 +214,7 @@ export default class QuibblesExtension extends Extension {
             }
 
         } else {
-            // We are IN the user session
+            // We are in the USER SESSION
             if (this._clockModule || this._unblankModule) {
                 this._disableLockScreen();
             }
@@ -253,6 +254,7 @@ export default class QuibblesExtension extends Extension {
     }
 
     disable() {
+        // === REQUIRED COMMENT TO EXPLAIN UNLOCK-DIALOG USE AT CLEANUP ===
         // This extension uses 'unlock-dialog' session mode to modify the lock screen
         // clock font. All UI elements and listeners are cleaned up here.
         if (this._sessionId) {
@@ -264,7 +266,6 @@ export default class QuibblesExtension extends Extension {
         this._disableLockScreen();
         this._disableUserSession();
 
-        // Clean up stable features
         if (this._windowMenuFeature) {
             this._windowMenuFeature.disable();
             this._windowMenuFeature = null;
@@ -275,7 +276,6 @@ export default class QuibblesExtension extends Extension {
             this._screenshotButtonFeature = null;
         }
 
-        // Clean up settings object
         this._settings?.run_dispose();
         this._settings = null;
     }

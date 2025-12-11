@@ -220,7 +220,10 @@ const SystemMenuAppsPicker = GObject.registerClass(
     }
 );
 
-// --- MAIN PAGE ---
+// =================
+// === MAIN PAGE ===
+// =================
+
 export class TopPanelPage {
     constructor(settings) {
         this.page = new Adw.PreferencesPage({
@@ -356,7 +359,6 @@ export class TopPanelPage {
             settings.set_string('google-calendar-default-view', vals[viewDrop.selected]);
         });
 
-        // Disable dropdown if the feature is disabled
         settings.bind(
             'google-calendar-handler-enabled',
             viewRow,
@@ -399,6 +401,10 @@ export class TopPanelPage {
 
     }
 
+    // ==============================
+    // === QUICK SETTINGS SUBPAGE ===
+    // ==============================
+    
     _createQuickSettingsSubpage(settings) {
         const page = new Adw.NavigationPage({ title: _('Quick Settings'), tag: 'qs' });
         const toolbarView = new Adw.ToolbarView();
@@ -406,7 +412,9 @@ export class TopPanelPage {
         
         const prefsPage = new Adw.PreferencesPage();
         
-        // Group 1: Settings
+        // =========================
+        // === Group 1: Settings ===
+        // =========================
         const settingsGroup = new Adw.PreferencesGroup({
             title: _('System Menu Apps'),
             description: _('Application icons to appear in the system menu.'),
@@ -432,7 +440,9 @@ export class TopPanelPage {
         
         prefsPage.add(settingsGroup);
 
-        // Group 2: App Picker
+        // ===========================
+        // === Group 2: App Picker ===
+        // ===========================
         prefsPage.add(new SystemMenuAppsPicker(settings));
 
         toolbarView.set_content(prefsPage);

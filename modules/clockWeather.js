@@ -6,6 +6,9 @@
 
 /**
  * Clock Weather Feature
+ *
+ * Adds current condition icon and temperature
+ * after the clock on the date button
  */
 
 'use strict';
@@ -17,7 +20,6 @@ import Clutter from 'gi://Clutter';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as Weather from 'resource:///org/gnome/shell/misc/weather.js';
 
-// --- THE WEATHER WIDGET ---
 const WeatherWidget = GObject.registerClass(
 class WeatherWidget extends St.BoxLayout {
     _init(settings) {
@@ -67,7 +69,7 @@ class WeatherWidget extends St.BoxLayout {
 
         const summary = info.get_temp_summary();
 
-        // Only show if we have valid data
+        // Check for valid data
         if (summary && summary !== '--') {
             this._icon.icon_name = info.get_symbolic_icon_name();
             
@@ -103,7 +105,6 @@ class WeatherWidget extends St.BoxLayout {
     }
 });
 
-// --- THE FEATURE MODULE ---
 export class ClockWeatherFeature {
     constructor(settings) {
         this._settings = settings;
@@ -167,7 +168,7 @@ export class ClockWeatherFeature {
         if (this._container) {
             const clockLabel = this._dateMenu._clockDisplay;
             
-            // Check to see if the clock inside the container
+            // Check to see if the clock is inside the container
             if (clockLabel.get_parent() === this._container) {
                 this._container.remove_child(clockLabel);
 

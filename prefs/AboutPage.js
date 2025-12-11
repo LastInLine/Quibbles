@@ -36,16 +36,16 @@ export class AboutPage {
             spacing: 12,  // Space between title and description
         });
 
-        // --- Load and add the icon ---
+        // --- Icon ---
         const icon = new Gtk.Image({
             icon_name: 'quibbles-logo-symbolic',
             pixel_size: 200,
-            margin_bottom: 36,
+            margin_bottom: 36, // Space between icon and title
         });
         headerBox.append(icon);
 
 
-        // --- Add the title ---
+        // --- Title ---
         const titleLabel = new Gtk.Label({
             label: metadata.name,
             halign: Gtk.Align.CENTER,
@@ -54,7 +54,7 @@ export class AboutPage {
         headerBox.append(titleLabel);
 
 
-        // --- Add the description ---
+        // --- Description ---
         const descriptionLabel = new Gtk.Label({
             label: metadata.description,
             halign: Gtk.Align.CENTER,
