@@ -63,9 +63,9 @@ https://github.com/user-attachments/assets/27dcd960-2c69-4b53-be29-d8f2072f93f5
 
 ## About the author, the extension, & how it was made
 
-I'm neither a coder nor an expert on Linux. This extension was developed with the heavy use of AI and the code itself is, I'm certain, not conventionally structured and overly commented. It will not pass review on extensions.gnome.org because of this. I rely on the try-catch blocks to keep the rest of the extension functional while creating it in situ on my only machine with only a text editor as I have no idea how to use an IDE. If I were to clean up the code to the point where it could pass review by removing the try-catch blocks and comments for a beginner, I could not maintain it.
+I'm neither a coder nor an expert on Linux. This extension was developed with the heavy use of AI and the code itself is, I'm certain, not conventionally structured and overly commented. It will not pass review on [EGO](https://extensions.gnome.org) because of this. I rely on the try-catch blocks to keep the rest of the extension functional while creating it in situ on my sole machine with only a text editor as I have no idea how to use an IDE. If I were to clean up the code to the point where it could pass review by removing the try-catch blocks and comments for a beginner, I could not maintain it.
 
-If someone else wants to clean things up and maintain it they are welcome to, of course. I make it public because it was created to solve problems I had and it does and if anyone else is affected by those same problems it's better to make the solutions available rather than keep them to myself. If the code is too poor for their use as it comes at least it can point them in a direction where they can make it acceptable to them.
+If someone else wants to clean things up and maintain it they are welcome to, of course. I make it public because it was created to solve problems I had (which it does) and if anyone else is affected by those same problems it's better to make the solutions available rather than keep them to myself. If the code is too poor for their use as it comes at least it can point them in a direction where they can make it acceptable to them.
 
 ## Copyright & Attributions
 
