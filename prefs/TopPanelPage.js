@@ -10,7 +10,7 @@ import Gtk from 'gi://Gtk';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import { gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
-import { createSwitch } from './utils.js';
+import { createSwitch } from './prefsUtils.js';
 
 // --- Applications Picker ---
 const SystemMenuAppsPicker = GObject.registerClass(
@@ -53,7 +53,7 @@ const SystemMenuAppsPicker = GObject.registerClass(
             const headerBar = new Adw.HeaderBar();
             toolbarView.add_top_bar(headerBar);
 
-            // Search Bar
+            // --- Search Bar ---
             const searchEntry = new Gtk.SearchEntry({
                 placeholder_text: _('Search applications...'),
                 margin_top: 6,
@@ -116,7 +116,7 @@ const SystemMenuAppsPicker = GObject.registerClass(
                 rows.push({ row, text: (app.get_display_name() + ' ' + app.get_id()).toLowerCase() });
             });
 
-            // Search Logic
+            // --- Search Logic ---
             searchEntry.connect('search-changed', () => {
                 const term = searchEntry.text.toLowerCase();
                 rows.forEach(item => {
@@ -234,13 +234,12 @@ export class TopPanelPage {
         // =====================================
         // === GROUP 1: Workspace Management ===
         // =====================================
-        
         const wsGroup = new Adw.PreferencesGroup({
             title: _('Workspace Management'),
         });
         this.page.add(wsGroup);
 
-        // Workspace Indicator Toggle
+        // --- Workspace Indicator Toggle ---
         wsGroup.add(createSwitch(
             _('Enable Workspace Indicator'),
             _('Displays the current workspace name and a switcher menu.'),
@@ -248,7 +247,7 @@ export class TopPanelPage {
             'enable-workspace-indicator'
         ));
 
-        // Indicator Position
+        // --- Indicator Position ---
         const posRow = new Adw.ActionRow({
             title: _('Indicator Position')
         });
@@ -282,7 +281,7 @@ export class TopPanelPage {
             Gio.SettingsBindFlags.DEFAULT
         );
 
-        // Hide Indices
+        // --- Hide Indices ---
         const hideIndicesRow = new Adw.ActionRow({
             title: _('Hide Workspaces from Menu'),
             subtitle: _('Comma-separated IDs (e.g. 0, 1).'),
@@ -304,7 +303,7 @@ export class TopPanelPage {
             Gio.SettingsBindFlags.DEFAULT
         );
         
-        // Activiites Button
+        // --- Activiites Button ---
         const actRow = new Adw.ActionRow({ title: _('Activities Button') });
         const actDrop = new Gtk.DropDown({
             model: Gtk.StringList.new(['Default', 'Unclickable', 'Hidden']),
@@ -323,13 +322,12 @@ export class TopPanelPage {
         // ===============================
         // === GROUP 2: Date & Weather ===
         // ===============================
-        
         const dateMenuGroup = new Adw.PreferencesGroup({
             title: _('Date &amp; Weather'),
         });
         this.page.add(dateMenuGroup);
 
-        // Weather Toggle
+        // --- Weather Toggle ---
         dateMenuGroup.add(createSwitch(
             _('Display Current Weather on the Date Button'),
             _('Add conditions and temperature to the right of the clock.'),
@@ -337,7 +335,7 @@ export class TopPanelPage {
             'clock-weather-enabled'
         ));
 
-        // Google Calendar Handler Toggle
+        // --- Google Calendar Handler Toggle ---
         const gCalSwitchRow = createSwitch(
             _('Open Events in Google Calendar'),
             _('Go to selected day in the default browser instead of GNOME Calendar'),
@@ -346,7 +344,7 @@ export class TopPanelPage {
         );
         dateMenuGroup.add(gCalSwitchRow);
 
-        // Google Calendar View Mode
+        // --- Google Calendar View Mode ---
         const viewRow = new Adw.ActionRow({ title: _('Google Calendar View') });
         const viewDrop = new Gtk.DropDown({
             model: Gtk.StringList.new(['Day', 'Week', 'Month', '4 Week']),
@@ -372,13 +370,12 @@ export class TopPanelPage {
         // ==================================
         // === GROUP 3: Status & Settings ===
         // ==================================
-        
         const generalGroup = new Adw.PreferencesGroup({
             title: _('Status &amp; Settings'),
         });
         this.page.add(generalGroup);
 
-        // Mouse Barrier
+        // --- Mouse Barrier Toggle ---
         generalGroup.add(createSwitch(
             _('Remove Mouse Barrier'),
             _('Fence to the right of Status icons when a second monitor is to the right.'),
@@ -386,7 +383,7 @@ export class TopPanelPage {
             'remove-mouse-barrier'
         ));
 
-        // Quick Settings
+        // --- Quick Settings ---
         const qsRow = new Adw.ActionRow({
             title: _('Quick Settings System Menu'),
             subtitle: _('Add, remove, or reorder items in the system menu'),
@@ -419,6 +416,8 @@ export class TopPanelPage {
             title: _('System Menu Apps'),
             description: _('Application icons to appear in the system menu.'),
         });
+        
+        // --- Screenshot Button Toggle ---
         settingsGroup.add(createSwitch(
             _('Hide Screenshot Button'),
             null,
@@ -426,6 +425,7 @@ export class TopPanelPage {
             'hide-screenshot-button'
         ));
         
+        // --- Launcher Position ---
         const launcherPosRow = new Adw.ActionRow({ title: _('Launcher Position') });
         const launcherDrop = new Gtk.DropDown({
             model: Gtk.StringList.new([_('Leftmost'), _('After Screenshot')]),

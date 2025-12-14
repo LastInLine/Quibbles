@@ -9,6 +9,7 @@ import Gtk from 'gi://Gtk';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import { gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import { createSwitch } from './prefsUtils.js';
 
 const ALL_MENU_ITEMS = [
     'Take Screenshot',
@@ -149,7 +150,6 @@ const WindowMenuBuilder = GObject.registerClass(
             addOption('SEPARATOR', true);
 
             ALL_MENU_ITEMS.forEach(item => {
-                // Don't show items that are already in the list
                 if (!currentItems.includes(item)) {
                     addOption(item);
                 }
@@ -239,26 +239,20 @@ export class WindowMenuPage {
         // ==============================
         // === GROUP 1: Master Switch ===
         // ==============================
-        
         const masterGroup = new Adw.PreferencesGroup();
         this.page.add(masterGroup);
 
-        const masterRow = new Adw.SwitchRow({
-            title: _('Enable Window Menu Modifications'),
-        });
-        masterGroup.add(masterRow);
-
-        settings.bind(
+        // --- Window Mods Toggle ---
+        masterGroup.add(createSwitch(
+            _('Enable Window Menu Modifications'),
+            null,
+            settings,
             'enable-window-menu',
-            masterRow,
-            'active',
-            Gio.SettingsBindFlags.DEFAULT
-        );
+        ));
 
         // ===========================
         // === GROUP 2: Menu Items ===
         // ===========================
-        
         const builderGroup = new WindowMenuBuilder(settings);
         this.page.add(builderGroup);
 

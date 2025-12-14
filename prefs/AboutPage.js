@@ -13,7 +13,6 @@ import { gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensio
 
 export class AboutPage {
     constructor(extension) {
-        // Get metadata from the extension object
         const metadata = extension.metadata;
 
         this.page = new Adw.PreferencesPage({
@@ -24,11 +23,13 @@ export class AboutPage {
         const iconTheme = Gtk.IconTheme.get_for_display(Gdk.Display.get_default());
         iconTheme.add_search_path(extension.path + '/icons');
         
-        // --- GROUP 1: Centered Header ---
+        // ================================
+        // === GROUP 1: Centered Header ===
+        // ================================
         const headerGroup = new Adw.PreferencesGroup();
         this.page.add(headerGroup);
 
-        // This Box holds and centers the icon and labels
+        // --- Holds and centers the icon and labels ---
         const headerBox = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
             halign: Gtk.Align.CENTER,
@@ -63,7 +64,8 @@ export class AboutPage {
         });
         headerBox.append(descriptionLabel);
 
-         const clamp = new Adw.Clamp({
+        // --- Everything ---
+        const clamp = new Adw.Clamp({
             child: headerBox,
             margin_top: 66, // Distance from the top for everything
             margin_bottom: 24,
@@ -71,7 +73,9 @@ export class AboutPage {
 
         headerGroup.add(clamp);
 
-        // --- GROUP 2: Details & Links ---
+        // ================================
+        // === GROUP 2: Details & Links ===
+        // ================================
         const detailsGroup = new Adw.PreferencesGroup();
         this.page.add(detailsGroup);
 

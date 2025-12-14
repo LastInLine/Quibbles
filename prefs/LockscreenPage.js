@@ -8,7 +8,7 @@ import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 import { gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
-import { createSwitch } from './utils.js';
+import { createSwitch } from './prefsUtils.js';
 
 export class LockscreenPage {
     constructor(settings) {
@@ -20,7 +20,6 @@ export class LockscreenPage {
         // =================================
         // === GROUP 1: Lockscreen Clock ===
         // =================================
-        
         const clockGroup = new Adw.PreferencesGroup({
             title: _('Lockscreen Clock'),
         });
@@ -52,7 +51,6 @@ export class LockscreenPage {
         fontRow.add_suffix(fontButton);
         fontRow.set_activatable_widget(fontButton); 
 
-        // --- Signal Handlers ---
         fontButton.connect('font-set', () => {
             const newFontDescString = fontButton.get_font();
             settings.set_string('font-desc', newFontDescString);
@@ -66,14 +64,13 @@ export class LockscreenPage {
         // ===================================
         // === GROUP 2: Lockscreen Unblank ===
         // ===================================
-        
         const unblankGroup = new Adw.PreferencesGroup({
             title: _('Lockscreen Unblank'),
             description: _('Delays or prevents the lock screen from fading to black.'),
         });
         this.page.add(unblankGroup);
 
-        // Master Enable Toggle
+        // --- Master Enable Toggle ---
         unblankGroup.add(createSwitch(
             _('Enable Lockscreen Unblank'),
             null,
@@ -81,7 +78,7 @@ export class LockscreenPage {
             'enable-unblank'
         ));
 
-        // AC Power setting
+        // --- AC Power Setting ---
         const powerRow = createSwitch(
             _('Unblank Only on AC Power'),
             null,
@@ -97,7 +94,7 @@ export class LockscreenPage {
             Gio.SettingsBindFlags.DEFAULT
         );
         
-        // Timeout
+        // --- Timeout ---
         const timeRow = new Adw.ActionRow({
             title: _('Time until blank'),
         });

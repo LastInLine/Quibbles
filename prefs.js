@@ -9,7 +9,7 @@ import { AboutPage } from './prefs/AboutPage.js';
 
 export default class QuibblesPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
-        window.set_default_size(700, 780);
+        window.set_default_size(700, 780); // Width, height
 
         const settings = this.getSettings();
         
