@@ -3,15 +3,8 @@
 /**
  * Window Menu Feature
  *
- * Completely rebuilds the window titlebar context menu to support
- * custom ordering and separators.
- *
- * ARCHITECTURE NOTE:
- * GNOME Shell does not provide a signal or API to modify the window menu
- * items before they are displayed. To achieve reordering, this module hooks
- * into the `_buildMenu` prototype. Existing items are safely detached (without
- * being destroyed) to prevent memory errors, then re-added in the
- * user-specified order.
+ * Rebuilds the window titlebar context menu
+ * to support custom ordering and separators.
  */
 
 'use strict';
@@ -21,6 +14,10 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 let originalBuildMenu = null;
 
+// --------------------
+// --- EXPORT CLASS ---
+// --------------------
+
 export class WindowMenuFeature {
     constructor(settings) {
         this._settings = settings;
@@ -28,19 +25,27 @@ export class WindowMenuFeature {
         this._masterToggleConnection = null;
     }
 
+    // ------------------------
+    // --- Enable & Cleanup ---
+    // ------------------------
+
     enable() {
+        // Look to see if the menu is modified and if not, do so
         if (originalBuildMenu === null) {
             originalBuildMenu = WindowMenu.prototype._buildMenu;
             
             const settings = this._settings;
-            
+
             WindowMenu.prototype._buildMenu = function(...args) {
+                // 1. Build the default menu
                 originalBuildMenu.apply(this, args);
 
+                // 2. Stop if the feature is disabled
                 if (!settings.get_boolean('enable-window-menu')) {
                     return;
                 }
 
+                // 3. Otherwise build the user-defined menu
                 const children = this.box.get_children(); 
                 const itemMap = new Map();
 
@@ -67,6 +72,7 @@ export class WindowMenuFeature {
                     }
                 });
                 
+                // 4. Destroy anything not specified by the user
                 itemMap.forEach(item => item.destroy());
             };
         }
@@ -98,6 +104,11 @@ export class WindowMenuFeature {
         }
     }
 
+    // -------------
+    // --- Logic ---
+    // -------------
+
+    // Refresh the menu for open windows immediately
     _forceMenuRebuild() {
         global.get_window_actors().forEach(actor => {
             const window = actor.get_meta_window();

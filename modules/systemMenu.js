@@ -20,33 +20,36 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { QuickSettingsItem } from 'resource:///org/gnome/shell/ui/quickSettings.js';
 import { waitFor } from './shellUtils.js';
 
-/**
- * A custom QuickSettingsItem that acts as an application launcher
- */
+// -----------------------
+// --- HELPER CLASS #1 ---
+// -----------------------
+
+// Builds the buttons to place in the launcher
 const SystemMenuAppButton = GObject.registerClass(
-    class SystemMenuAppButton extends QuickSettingsItem {
-        constructor(appInfo) {
-            super({
-                style_class: 'icon-button',
-                can_focus: true,
-                icon_name: appInfo.app_info.get_icon()?.names[0] || 'application-x-executable-symbolic',
-                visible: !Main.sessionMode.isGreeter,
-                accessible_name: appInfo.get_name(),
-            });
+class SystemMenuAppButton extends QuickSettingsItem {
+    constructor(appInfo) {
+        super({
+            style_class: 'icon-button',
+            can_focus: true,
+            icon_name: appInfo.app_info.get_icon()?.names[0] || 'application-x-executable-symbolic',
+            visible: !Main.sessionMode.isGreeter,
+            accessible_name: appInfo.get_name(),
+        });
 
-            this.connect('clicked', () => {
-                Main.overview.hide();
-                Main.panel.closeQuickSettings();
-                appInfo.activate();
-            });
-        }
+        this.connect('clicked', () => {
+            Main.overview.hide();
+            Main.panel.closeQuickSettings();
+            appInfo.activate();
+        });
     }
-);
+});
 
-/**
- * Manages adding custom app launchers to the system menu.
- */
+// --------------------
+// --- EXPORT CLASS ---
+// --------------------
+
 export class SystemMenuModule {
+
     constructor(settings) {
         this._settings = settings;
         this._systemItemChild = null;
@@ -58,8 +61,11 @@ export class SystemMenuModule {
         this._originalSettingsButton = null;
     }
 
+    // ------------------------
+    // --- Enable & Cleanup ---
+    // ------------------------
+    
     enable() {
-        // Poll for the existence of the system menu item before initializing
         this._timeoutId = waitFor(
             () => {
                 return !!Main.panel.statusArea.quickSettings._system._systemItem.child;
@@ -70,40 +76,7 @@ export class SystemMenuModule {
             }
         );
     }
-
-    _initialize() {
-        try {
-            this._systemItemChild = Main.panel.statusArea.quickSettings._system._systemItem.child;
-            if (!this._systemItemChild) {
-                return;
-            }
-            
-            // --- Find and hide the original Settings button ---
-            const children = this._systemItemChild.get_children();
-            for (const child of children) {
-                if (child.constructor.name === 'SettingsItem') {
-                    this._originalSettingsButton = child;
-                    this._originalSettingsButton.visible = false;
-                    break;
-                }
-            }
-            
-            this._appsChangedId = this._settings.connect(
-                'changed::system-menu-apps',
-                () => this._onApplicationsChange()
-            );
-            this._posChangedId = this._settings.connect(
-                'changed::system-menu-position',
-                () => this._onPositionChange()
-            );
-
-            this._onApplicationsChange();
-
-        } catch (e) {
-            console.warn(`[Quibbles] System menu layout not found or changed: ${e.message}`);
-        }
-    }
-
+    
     disable() {
         if (this._timeoutId) {
             GLib.source_remove(this._timeoutId);
@@ -124,7 +97,6 @@ export class SystemMenuModule {
         }
         this._launcherButtons.clear();
         
-        // --- Restore the original Settings button ---
         if (this._originalSettingsButton) {
             this._originalSettingsButton.visible = true;
             this._originalSettingsButton = null;
@@ -133,6 +105,40 @@ export class SystemMenuModule {
         this._systemItemChild = null;
     }
 
+    // -------------
+    // --- Logic ---
+    // -------------
+
+    // Creates a list of buttons to be included in the launcher
+    _initialize() {
+        this._systemItemChild = Main.panel.statusArea.quickSettings._system._systemItem.child;
+        
+        if (!this._systemItemChild) {
+            return;
+        }
+        
+        const children = this._systemItemChild.get_children();
+        for (const child of children) {
+            if (child.constructor.name === 'SettingsItem') {
+                this._originalSettingsButton = child;
+                this._originalSettingsButton.visible = false;
+                break;
+            }
+        }
+        
+        this._appsChangedId = this._settings.connect(
+            'changed::system-menu-apps',
+            () => this._onApplicationsChange()
+        );
+        this._posChangedId = this._settings.connect(
+            'changed::system-menu-position',
+            () => this._onPositionChange()
+        );
+
+        this._onApplicationsChange();
+    }
+    
+    // Removes a button from the launcher
     _removeAppLauncher(appId, button) {
         if (this._systemItemChild && button.get_parent() === this._systemItemChild) {
             this._systemItemChild.remove_child(button);
@@ -140,6 +146,7 @@ export class SystemMenuModule {
         button.destroy();
     }
 
+    // Changes the buttons within the launcher
     _onApplicationsChange() {
         if (!this._systemItemChild) {
             return;
@@ -170,6 +177,7 @@ export class SystemMenuModule {
         this._onPositionChange();
     }
 
+    // Moves the buttons within the launcher
     _onPositionChange() {
         if (!this._systemItemChild) {
             return;

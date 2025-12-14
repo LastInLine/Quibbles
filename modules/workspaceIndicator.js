@@ -18,9 +18,13 @@ import St from 'gi://St';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
+// -----------------------
+// --- HELPER CLASS #1 ---
+// -----------------------
+
+// Builds the indicator
 const MyIndicator = GObject.registerClass(
 class MyIndicator extends PanelMenu.Button {
-
     _init(settings) {
         super._init(0.5, 'My Workspace Indicator');
 
@@ -40,6 +44,7 @@ class MyIndicator extends PanelMenu.Button {
         });
         this.add_child(label);
 
+        // Creates the switcher menu
         const menuHeader = new PopupMenu.PopupMenuItem('Switch to', { reactive: false });
         menuHeader.style = 'padding-top: 0px; padding-bottom: 6px; min-height: 0;';
         menuHeader.label.style = 'font-size: 0.8em; font-weight: bold; color: #c0c0c0;';
@@ -52,6 +57,7 @@ class MyIndicator extends PanelMenu.Button {
                 .filter(n => !isNaN(n))
         );
         
+        // Populates the switcher menu
         for (let i = 0; i < nWorkspaces; i++) {
             
             const isActive = (i === activeWorkspaceIndex);
@@ -73,7 +79,7 @@ class MyIndicator extends PanelMenu.Button {
             this.menu.addMenuItem(menuItem);
         }
 
-        // If no other workspaces are available to switch to, display a placeholder
+        // Accounts for fixed workspaces which are all visible
         if (this.menu.numMenuItems <= 1) {
             this.menu.removeAll();
             const testItem = new PopupMenu.PopupMenuItem('No hidden workspaces', { reactive: false });
@@ -82,8 +88,9 @@ class MyIndicator extends PanelMenu.Button {
     }
 });
 
-
-// --- Feature Logic Class ---
+// --------------------
+// --- EXPORT CLASS ---
+// --------------------
 
 export class WorkspaceIndicatorFeature {
 
@@ -96,6 +103,10 @@ export class WorkspaceIndicatorFeature {
         this._positionSettingId = null;
         this._indexSettingId = null;
     }
+
+    // ------------------------
+    // --- Enable & Cleanup ---
+    // ------------------------
     
     enable() {
         this._settingsConnection = this._settings.connect(
@@ -145,6 +156,11 @@ export class WorkspaceIndicatorFeature {
         this._destroyIndicator();
     }
 
+    // -------------
+    // --- Logic ---
+    // -------------
+
+    // Identifies whether the feature is enabled
     _updateWorkspaceIndicator() {
         if (this._settings.get_boolean('enable-workspace-indicator')) {
             if (!this._indicator) {
@@ -154,7 +170,6 @@ export class WorkspaceIndicatorFeature {
                 const index = this._settings.get_int('workspace-indicator-index');
                 Main.panel.addToStatusArea('quibbles-workspace-indicator', this._indicator, index, position);
                 
-                // Watch for workspace changes to rebuild the indicator
                 this._workspaceChangedId = global.workspace_manager.connect(
                     'active-workspace-changed',
                     this._rebuildIndicator.bind(this)
@@ -166,7 +181,8 @@ export class WorkspaceIndicatorFeature {
             }
         }
     }
-
+    
+    // Changes what the indicator displays
     _rebuildIndicator() {
         if (!this._indicator) return;
 
@@ -178,6 +194,7 @@ export class WorkspaceIndicatorFeature {
         Main.panel.addToStatusArea('quibbles-workspace-indicator', this._indicator, index, position);
     }
 
+    // Disconnects and destroys the indicator
     _destroyIndicator() {
         if (this._workspaceChangedId) {
             global.workspace_manager.disconnect(this._workspaceChangedId);

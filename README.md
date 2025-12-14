@@ -53,16 +53,19 @@ https://github.com/user-attachments/assets/27dcd960-2c69-4b53-be29-d8f2072f93f5
 
 ## Preferences
 
-  ![Top Panel Prefs](images/top-panel-settings.png)
-  ![Quick Settings Prefs](images/quick-settings-settings.png)
-  ![Window Menu Prefs](images/window-menu-settings.png)
-  ![Lockscreen Prefs](images/lockscreen-settings.png)
+  ![Prefs](images/prefs.png)
   
 ## Installation
 
 1. Place the extension folder `quibbles@lastinline.gmail.com` into your local extensions folder `~/.local/share/gnome-shell/extensions/`
 2. Log out and log back in
 3. Enable the extension in your extension manager
+
+## About the author, the extension, & how it was made
+
+I'm neither a coder nor an expert on Linux. This extension was developed with the heavy use of AI and the code itself is, I'm certain, not conventionally structured and overly commented. It will not pass review on extensions.gnome.org because of this. I rely on the try-catch blocks to keep the rest of the extension functional while creating it in situ on my only machine with only a text editor as I have no idea how to use an IDE. If I were to clean up the code to the point where it could pass review by removing the try-catch blocks and comments for a beginner, I could not maintain it.
+
+If someone else wants to clean things up and maintain it they are welcome to, of course. I make it public because it was created to solve problems I had and it does and if anyone else is affected by those same problems it's better to make the solutions available rather than keep them to myself. If the code is too poor for their use as it comes at least it can point them in a direction where they can make it acceptable to them.
 
 ## Copyright & Attributions
 
@@ -80,9 +83,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 Portions of this software are derived from the "Tweaks in System Menu" extension
 (https://github.com/F-i-f/tweaks-system-menu),
 which is licensed under the GNU General Public License v3.0.
+
 Copyright (c) 2019-2024 F-i-f
 
 Portions of this software are derived from the "Weather O'Clock" extension (https://github.com/CleoMenezesJr/weather-oclock) which is licensed under the GNU General Public License v3.0.
+
 Copyright (c) 2023-2025 Cleo Menezes Jr.
 
 Portions of this software are also derived from the "Unblank Lockscreen" extension

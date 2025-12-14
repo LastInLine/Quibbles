@@ -17,6 +17,10 @@
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
+// --------------------
+// --- EXPORT CLASS ---
+// --------------------
+
 export class MouseBarrierFeature {
 
     constructor(settings) {
@@ -24,6 +28,10 @@ export class MouseBarrierFeature {
         this._settingsConnection = null;
         this._originalUpdatePanelBarrier = null;
     }
+    
+    // ------------------------
+    // --- Enable & Cleanup ---
+    // ------------------------
 
     enable() {
         this._originalUpdatePanelBarrier = Main.layoutManager._updatePanelBarrier;

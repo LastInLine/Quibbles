@@ -9,22 +9,86 @@
  
 'use strict';
 
+import GLib from 'gi://GLib';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import Pango from 'gi://Pango';
+import { waitFor } from './shellUtils.js';
+
+// --------------------
+// --- EXPORT CLASS ---
+// --------------------
 
 export default class LockscreenClock {
     
-    _settings = null;
-    _timeLabel = null;
-    _originalTimeStyle = null;
-    _settingsChangedId = null;
-
     constructor() {
+        this._settings = null;
+        this._timeLabel = null;
+        this._originalTimeStyle = null;
+        this._settingsChangedId = null;
+        this._timeoutId = null;
     }
 
-    /**
-     * Build a CSS string to apply to the time label
-     */
+    // ------------------------
+    // --- Enable & Cleanup ---
+    // ------------------------
+
+    enable(settings) {
+        this._settings = settings;
+        this._waitForClock();
+    }
+
+    disable() {
+        if (this._timeoutId) {
+            GLib.source_remove(this._timeoutId);
+            this._timeoutId = null;
+        }
+
+        if (this._timeLabel) {
+            try {
+                this._timeLabel.set_style(this._originalTimeStyle);
+            } catch (e) {
+            }
+        }
+
+        if (this._settings && this._settingsChangedId) {
+            this._settings.disconnect(this._settingsChangedId);
+        }
+
+        this._timeLabel = null;
+        this._originalTimeStyle = null;
+        this._settings = null;
+        this._settingsChangedId = null;
+    }
+
+    // -------------
+    // --- Logic ---
+    // -------------
+
+    // Uses the shared utility to wait for the clock element to appear
+    _waitForClock() {
+        this._timeoutId = waitFor(
+            () => Main.screenShield._dialog?._clock?._time,
+            () => {
+                const clock = Main.screenShield._dialog._clock;
+                this._initClock(clock);
+                this._timeoutId = null;
+            }
+        );
+    }
+
+    // Hooks up the settings listener and saves the original state
+    _initClock(clock) {
+        this._timeLabel = clock._time;
+        this._originalTimeStyle = this._timeLabel.get_style() || '';
+        
+        this._settingsChangedId = this._settings.connect('changed::font-desc', () => {
+            this._applyStyle();
+        });
+
+        this._applyStyle();
+    }
+
+    // Translates the font setting into CSS and applies it to the clock
     _applyStyle() {
         if (!this._timeLabel) {
             return;
@@ -47,53 +111,14 @@ export default class LockscreenClock {
             else if (style === Pango.Style.OBLIQUE) { css += 'font-style: oblique; '; }
         }
         
-        if (css) {
-            this._timeLabel.set_style(css);
-        } else {
-            // If 'font-desc' is empty, revert to the original system style
-            this._timeLabel.set_style(this._originalTimeStyle);
-        }
-    }
-
-    enable(settings) {
-        this._settings = settings;
-        
         try {
-            // Current path to the internal clock widget
-            // If the extension breaks, look here first
-            const clock = Main.screenShield._dialog._clock;
-            
-            if (clock && clock._time) {
-                this._timeLabel = clock._time;
-                // Save the original style before modifying it
-                this._originalTimeStyle = this._timeLabel.get_style() || '';
-                
-                this._settingsChangedId = this._settings.connect('changed::font-desc', () => {
-                    this._applyStyle();
-                });
-
-                this._applyStyle();
+            if (css) {
+                this._timeLabel.set_style(css);
+            } else {
+                this._timeLabel.set_style(this._originalTimeStyle);
             }
-
         } catch (e) {
-            console.warn(`[Quibbles] Lockscreen clock structure changed (font tweak disabled): ${e.message}`);  
+            this._timeLabel = null;
         }
-    }
-
-    disable() {
-        if (this._timeLabel) {
-            this._timeLabel.set_style(this._originalTimeStyle);
-        }
-
-        if (this._settings && this._settingsChangedId) {
-            this._settings.disconnect(this._settingsChangedId);
-        }
-
-        this._timeLabel = null;
-        this._originalTimeStyle = null;
-        this._settings = null;
-        this._settingsChangedId = null;
     }
 }
-
-

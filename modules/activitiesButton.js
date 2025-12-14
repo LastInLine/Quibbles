@@ -4,7 +4,7 @@
  * Activities Button Feature
  *
  * This file contains all the logic for modifying the behavior
- *  or presence of the 'Activities' button in the top panel.
+ * or eliminating the 'Activities' button in the top panel.
  */
  
 'use strict';
@@ -12,6 +12,10 @@
 import GLib from 'gi://GLib';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { waitFor } from './shellUtils.js';
+
+// --------------------
+// --- EXPORT CLASS ---
+// --------------------
 
 export class ActivitiesButtonFeature {
     constructor(settings) {
@@ -22,14 +26,14 @@ export class ActivitiesButtonFeature {
         this._timeoutId = null;
     }
     
+    // ------------------------
+    // --- Enable & Cleanup ---
+    // ------------------------
+    
     enable() {
         this._timeoutId = waitFor(
             () => {
-                try {
-                    return !!Main.panel.statusArea['activities'];
-                } catch {
-                    return false;
-                }
+                return !!Main.panel.statusArea && !!Main.panel.statusArea['activities'];
             },
             () => {
                 this._initialize();
@@ -38,6 +42,30 @@ export class ActivitiesButtonFeature {
         );
     }
 
+    disable() {
+        if (this._timeoutId) {
+            GLib.source_remove(this._timeoutId);
+            this._timeoutId = null;
+        }
+
+        if (this._settingsConnection) {
+            this._settings.disconnect(this._settingsConnection);
+            this._settingsConnection = null;
+        }
+
+        if (this._activitiesButton) {
+            this._activitiesButton.reactive = this._originalActivitiesState.reactive;
+            this._activitiesButton.container.visible = this._originalActivitiesState.visible;
+        }
+        
+        this._activitiesButton = null;
+    }
+    
+    // -------------
+    // --- Logic ---
+    // -------------
+
+    // Saves the default state and applies the selected state
     _initialize() {
         this._activitiesButton = Main.panel.statusArea['activities'];
 
@@ -52,25 +80,7 @@ export class ActivitiesButtonFeature {
         this._updateActivitiesButton();
     }
     
-    disable() {
-        if (this._timeoutId) {
-            GLib.source_remove(this._timeoutId);
-            this._timeoutId = null;
-        }
-
-        if (this._settingsConnection) {
-            this._settings.disconnect(this._settingsConnection);
-            this._settingsConnection = null;
-        }
-        
-        if (this._activitiesButton) {
-            this._activitiesButton.reactive = this._originalActivitiesState.reactive;
-            this._activitiesButton.container.visible = this._originalActivitiesState.visible;
-        }
-        
-        this._activitiesButton = null;
-    }
-    
+    // Hides or disables the button
     _updateActivitiesButton() {
         if (!this._activitiesButton) return;
         

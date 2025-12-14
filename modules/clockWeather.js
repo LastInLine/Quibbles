@@ -1,6 +1,6 @@
 // Quibbles - Copyright (C) 2025 LastInLine - See LICENSE file for details.
 
-// Contains logic adapted from Weather O'Clock by Cleo Menezes Jr.
+// Contains logic adapted from weather-oclock by Cleo Menezes Jr.
 // also known as the GNOME extension "Weather O'Clock"
 // which is licensed under the GPL-3.0 license.
 
@@ -20,6 +20,11 @@ import Clutter from 'gi://Clutter';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as Weather from 'resource:///org/gnome/shell/misc/weather.js';
 
+// -----------------------
+// --- HELPER CLASS #1 ---
+// -----------------------
+
+// Build the widget
 const WeatherWidget = GObject.registerClass(
 class WeatherWidget extends St.BoxLayout {
     _init(settings) {
@@ -61,6 +66,7 @@ class WeatherWidget extends St.BoxLayout {
         });
     }
 
+    // Retrieves current weather data from the client and updates the UI labels
     _update() {
         if (!this._weatherClient) return;
 
@@ -69,18 +75,14 @@ class WeatherWidget extends St.BoxLayout {
 
         const summary = info.get_temp_summary();
 
-        // Check for valid data
         if (summary && summary !== '--') {
             this._icon.icon_name = info.get_symbolic_icon_name();
             
-            // Parsing logic
             let text = summary;
-            // Extracting only the number, unit is ignored
             const match = summary.match(/-?\d+(\.\d+)?/);
             
            if (match) {
                 const num = parseFloat(match[0]);
-                // Round to nearest integer to match GNOME Weather
                 text = Math.round(num) + "°";
             }
             
@@ -91,6 +93,7 @@ class WeatherWidget extends St.BoxLayout {
         }
     }
 
+    // Cleanup helper
     destroy() {
         if (this._updateId) {
             if (this._weatherClient) this._weatherClient.disconnect(this._updateId);
@@ -105,6 +108,10 @@ class WeatherWidget extends St.BoxLayout {
     }
 });
 
+// --------------------
+// --- EXPORT CLASS ---
+// --------------------
+
 export class ClockWeatherFeature {
     constructor(settings) {
         this._settings = settings;
@@ -113,6 +120,10 @@ export class ClockWeatherFeature {
         this._weatherWidget = null;
         this._settingsSignalId = null;
     }
+
+    // ------------------------
+    // --- Enable & Cleanup ---
+    // ------------------------
 
     enable() {
         this._settingsSignalId = this._settings.connect('changed::clock-weather-enabled', () => {
@@ -129,6 +140,11 @@ export class ClockWeatherFeature {
         this._disableFeature();
     }
 
+    // -------------
+    // --- Logic ---
+    // -------------
+
+    // Identifies whether the feature is enabled
     _syncState() {
         if (this._settings.get_boolean('clock-weather-enabled')) {
             this._enableFeature();
@@ -136,7 +152,7 @@ export class ClockWeatherFeature {
             this._disableFeature();
         }
     }
-
+    // Constructs the container, instantiates the widget, and puts it on the panel
     _enableFeature() {
         if (this._container) return; 
 
@@ -159,6 +175,7 @@ export class ClockWeatherFeature {
         }
     }
 
+    // Destroys the widget, makes sure the clock isn't in the container, then destroys the container
     _disableFeature() {
         if (this._weatherWidget) {
             this._weatherWidget.destroy();
@@ -167,8 +184,7 @@ export class ClockWeatherFeature {
 
         if (this._container) {
             const clockLabel = this._dateMenu._clockDisplay;
-            
-            // Check to see if the clock is inside the container
+
             if (clockLabel.get_parent() === this._container) {
                 this._container.remove_child(clockLabel);
 

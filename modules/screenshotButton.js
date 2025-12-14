@@ -13,6 +13,10 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import GLib from 'gi://GLib';
 import { waitFor } from './shellUtils.js';
 
+// --------------------
+// --- EXPORT CLASS ---
+// --------------------
+
 export class ScreenshotButtonModule {
     constructor(settings) {
         this._settings = settings;
@@ -20,6 +24,10 @@ export class ScreenshotButtonModule {
         this._signalId = null;
         this._timeoutId = null;
     }
+
+    // ------------------------
+    // --- Enable & Cleanup ---
+    // ------------------------
 
     enable() {
         this._signalId = this._settings.connect(
@@ -29,7 +37,7 @@ export class ScreenshotButtonModule {
 
         this._timeoutId = waitFor(
             () => {
-                this._findAndToggleButton();
+                this._findButton();
                 return this._button !== null;
             },
             () => {
@@ -57,30 +65,29 @@ export class ScreenshotButtonModule {
         this._button = null;
     }
     
-    _findAndToggleButton() {
-        if (this._button) {
-            return;
-        }
+    // -------------
+    // --- Logic ---
+    // -------------
 
-        try {
-            const quickSettings = Main.panel.statusArea.quickSettings;
-            const systemItemChild = quickSettings._system?._systemItem?.child;
-            
-            if (!systemItemChild) {
-                return;
-            }
+    // Locates the screenshot button inside the Quick Settings hierarchy
+    _findButton() {
+        if (this._button) return;
+        
+        const quickSettings = Main.panel.statusArea.quickSettings;
+        const systemItemChild = quickSettings._system?._systemItem?.child;
+        
+        if (!systemItemChild) return;
 
-            for (const child of systemItemChild.get_children()) {
-                if (child.constructor.name === 'ScreenshotItem') {
-                    this._button = child;
-                    break;
-                }
+        const children = systemItemChild.get_children();
+        for (const child of children) {
+            if (child.constructor.name === 'ScreenshotItem') {
+                this._button = child;
+                break;
             }
-        } catch {
-            this._button = null;
         }
     }
 
+    // Toggles the button based on settings
     _updateVisibility() {
         if (!this._button) {
             return;

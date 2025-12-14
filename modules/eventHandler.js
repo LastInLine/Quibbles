@@ -13,6 +13,10 @@ import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
+// --------------------
+// --- EXPORT CLASS ---
+// --------------------
+
 export class EventHandler {
     constructor(settings) {
         this._settings = settings;
@@ -22,6 +26,10 @@ export class EventHandler {
         this._originalSetDate = null;
         this._originalReloadEvents = null;
     }
+
+    // ------------------------
+    // --- Enable & Cleanup ---
+    // ------------------------
 
     enable() {
         this._settingsSignalId = this._settings.connect(
@@ -41,6 +49,11 @@ export class EventHandler {
         this._removeHooks();
     }
 
+    // -------------
+    // --- Logic ---
+    // -------------
+
+    // Identifies whether the feature is enabled
     _syncState() {
         const isEnabled = this._settings.get_boolean('google-calendar-handler-enabled');
         
@@ -56,6 +69,7 @@ export class EventHandler {
         }
     }
 
+    // Watches the calendar for state changes to trigger the search
     _installHooks() {
         const dateMenu = Main.panel.statusArea.dateMenu;
         if (!dateMenu || !dateMenu._eventsItem) return;
@@ -78,7 +92,6 @@ export class EventHandler {
             this._currentEventsSection._reloadEvents = () => {
                 if (this._originalReloadEvents) this._originalReloadEvents.call(this._currentEventsSection);
                 
-                // Wait for the UI to rebuild, then patch again
                 GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
                     this._updateView();
                     return GLib.SOURCE_REMOVE;
@@ -88,6 +101,7 @@ export class EventHandler {
         }
     }
 
+    // Cleans up hook
     _removeHooks() {
         const dateMenu = Main.panel.statusArea.dateMenu;
         
@@ -109,31 +123,26 @@ export class EventHandler {
                 this._originalReloadEvents = null;
             }
             
-            // Force a reload so the UI goes back to normal
-            // Try-catch in case internal methods change
-            try { 
-                if (this._currentEventsSection._reloadEvents) {
-                    this._currentEventsSection._reloadEvents(); 
-                }
-            } catch (e) {
-                console.warn(`[Quibbles] Cleanup reload warning: ${e.message}`);
+            if (this._currentEventsSection._reloadEvents) {
+                this._currentEventsSection._reloadEvents(); 
             }
         }
         this._currentEventsSection = null;
     }
 
+    // Triggers the search for the events-button
     _updateView() {
         if (!this._currentEventsSection) return;
         this._patchRecursively(this._currentEventsSection);
     }
 
+    // Performs the search for events-button, hooks it, and hijacks the click
     _patchRecursively(actor) {
         if (!actor) return;
 
         if (actor.has_style_class_name && actor.has_style_class_name('events-button')) {
             if (!actor._quibblesHijacked) {
 
-                // This prevents the button from performing default behavior
                 const id = actor.connect('captured-event', (widget, event) => {
                     const type = event.type();
                     
@@ -162,6 +171,7 @@ export class EventHandler {
         }
     }
 
+    // Cleans up click stealer
     _cleanupHandlers(actor) {
         if (!actor) return;
 
@@ -176,6 +186,7 @@ export class EventHandler {
         }
     }
 
+    // Calculates the correct Google Calendar URL for the selected date and opens it
     _launchCurrentDate() {
         if (!this._currentEventsSection || !this._currentEventsSection._startDate) return;
         
@@ -197,10 +208,6 @@ export class EventHandler {
         const viewMode = this._settings.get_string('google-calendar-default-view');
         const url = `https://calendar.google.com/calendar/r/${viewMode}/${year}/${month}/${day}`;
 
-        try {
-            Gio.AppInfo.launch_default_for_uri(url, null);
-        } catch (e) {
-            console.error(`[Quibbles] Failed to send Google Calendar URL: ${e.message}`);
-        }
+        Gio.AppInfo.launch_default_for_uri(url, null);
     }
 }
