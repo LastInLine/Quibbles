@@ -257,7 +257,7 @@ class UnblankEngine {
         shield._lockScreenState = MessageTray.State.SHOWING;
 
         const shouldUnblank = this._isUnblank();
-        let fadeToBlack = shouldUnblank ? false : params.fadeToBlack;
+        const fadeToBlack = shouldUnblank ? false : params.fadeToBlack;
 
         if (params.animateLockScreen) {
             shield._lockDialogGroup.translation_y = -global.screen_height;

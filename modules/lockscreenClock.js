@@ -47,6 +47,7 @@ export default class LockscreenClock {
             try {
                 this._timeLabel.set_style(this._originalTimeStyle);
             } catch (e) {
+                console.warn(`[Quibbles] Lockscreen clock not present to restore: ${e.message}`);
             }
         }
 
@@ -118,6 +119,7 @@ export default class LockscreenClock {
                 this._timeLabel.set_style(this._originalTimeStyle);
             }
         } catch (e) {
+            console.warn(`[Quibbles] Failed to apply clock style: ${e.message}`);
             this._timeLabel = null;
         }
     }
