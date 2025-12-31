@@ -18,9 +18,43 @@ import St from 'gi://St';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
+const PAPERWM_UUID = 'paperwm@paperwm.github.com';
+
 // -----------------------
-// --- HELPER CLASS #1 ---
+// --- HELPER FUNCTION ---
 // -----------------------
+
+// Tries to get PaperWM's internal state for workspace visibility
+function getPaperWMVisibleIndices() {
+    const visible = new Set();
+    
+    // Wrapped in try/catch in case user disables PaperWM after load
+    try {
+        const paperwm = Main.extensionManager.lookup(PAPERWM_UUID);
+        
+        if (paperwm && 
+            paperwm.state === 1 && 
+            paperwm.stateObj && 
+            Array.isArray(paperwm.stateObj.modules)) {
+            
+            const TilingMod = paperwm.stateObj.modules.find(m => m && m.Space);
+            
+            if (TilingMod && TilingMod.spaces && TilingMod.spaces.monitors) {
+                for (const space of TilingMod.spaces.monitors.values()) {
+                    if (space) visible.add(space.index);
+                }
+            }
+        }
+    } catch (e) {
+        console.warn("Quibbles: PaperWM detection failed:", e);
+    }
+    
+    return visible;
+}
+
+// --------------------
+// --- HELPER CLASS ---
+// --------------------
 
 // Builds the indicator
 const MyIndicator = GObject.registerClass(
@@ -29,62 +63,96 @@ class MyIndicator extends PanelMenu.Button {
         super._init(0.5, 'My Workspace Indicator');
 
         this._settings = settings;
+        this._workspaceManager = global.workspace_manager;
+        this._wmSettings = new Gio.Settings({ schema: 'org.gnome.desktop.wm.preferences' });
 
-        const workspaceManager = global.workspace_manager;
-        const workspaceNamesSetting = new Gio.Settings({ schema: 'org.gnome.desktop.wm.preferences' });
-        const workspaceNames = workspaceNamesSetting.get_strv('workspace-names');
-        const activeWorkspaceIndex = workspaceManager.get_active_workspace_index();
-        const nWorkspaces = workspaceManager.get_n_workspaces();
-
-        const currentWorkspaceName = workspaceNames[activeWorkspaceIndex] || _("Workspace %d").format(activeWorkspaceIndex + 1);
-
-        const label = new St.Label({
-            text: currentWorkspaceName,
+        this._label = new St.Label({
+            text: "...",
             y_align: Clutter.ActorAlign.CENTER,
         });
-        this.add_child(label);
 
-        // Creates the switcher menu
+        this.add_child(this._label);
+        this._updateLabel();
+
+        // Placeholder item required to make the button clickable before lazy-load
+        this.menu.addMenuItem(new PopupMenu.PopupMenuItem("Loading...", { reactive: false }));
+
+        this._wsSignalId = this._workspaceManager.connect(
+            'active-workspace-changed', 
+            () => this._updateLabel()
+        );
+ 
+        this._nameSignalId = this._wmSettings.connect(
+            'changed::workspace-names', 
+            () => this._updateLabel()
+        );
+
+        this.menu.connect('open-state-changed', (menu, isOpen) => {
+            if (isOpen) {
+                this._refreshMenu();
+            }
+        });
+    }
+
+    // Updates the text on the panel button
+    _updateLabel() {
+        const activeIndex = this._workspaceManager.get_active_workspace_index();
+        const names = this._wmSettings.get_strv('workspace-names');
+        const name = names[activeIndex] || _("Workspace %d").format(activeIndex + 1);
+        this._label.set_text(name);
+    }
+
+    // Builds the dropdown menu content
+    _refreshMenu() {
+        this.menu.removeAll();
+
+        // Header
         const menuHeader = new PopupMenu.PopupMenuItem('Switch to', { reactive: false });
         menuHeader.style = 'padding-top: 0px; padding-bottom: 6px; min-height: 0;';
         menuHeader.label.style = 'font-size: 0.8em; font-weight: bold; color: #c0c0c0;';
         this.menu.addMenuItem(menuHeader);
 
-        const indicesToHideStr = this._settings.get_string('hide-workspace-indices');
-        const indicesToHide = new Set(
-            indicesToHideStr.split(',')
-                .map(s => parseInt(s.trim()))
-                .filter(n => !isNaN(n))
-        );
+        const nWorkspaces = this._workspaceManager.get_n_workspaces();
+        const activeIndex = this._workspaceManager.get_active_workspace_index();
+        const names = this._wmSettings.get_strv('workspace-names');
         
-        // Populates the switcher menu
+        const visibleIndices = getPaperWMVisibleIndices();
+        visibleIndices.add(activeIndex);
+
+        let addedAny = false;
+
         for (let i = 0; i < nWorkspaces; i++) {
-            
-            const isActive = (i === activeWorkspaceIndex);
-            const isManuallyHidden = indicesToHide.has(i);
+            if (visibleIndices.has(i)) continue;
 
-            if (isActive || isManuallyHidden) {
-                continue;
-            }
-
-            const workspace = workspaceManager.get_workspace_by_index(i);
+            const workspace = this._workspaceManager.get_workspace_by_index(i);
             if (!workspace) continue; 
 
-            const name = workspaceNames[i] || _("Workspace %d").format(i + 1);
+            const name = names[i] || _("Workspace %d").format(i + 1);
             const menuItem = new PopupMenu.PopupMenuItem(name);
 
             menuItem.connect('activate', () => {
                 workspace.activate(global.get_current_time());
             });
             this.menu.addMenuItem(menuItem);
+            addedAny = true;
         }
 
-        // Accounts for fixed workspaces which are all visible
-        if (this.menu.numMenuItems <= 1) {
+        if (!addedAny) {
             this.menu.removeAll();
-            const testItem = new PopupMenu.PopupMenuItem('No hidden workspaces', { reactive: false });
+            const testItem = new PopupMenu.PopupMenuItem('All workspaces visible', { reactive: false });
             this.menu.addMenuItem(testItem);
         }
+    }
+
+    // Cleans up signals when the indicator is removed
+    destroy() {
+        if (this._wsSignalId) {
+            this._workspaceManager.disconnect(this._wsSignalId);
+        }
+        if (this._nameSignalId) {
+            this._wmSettings.disconnect(this._nameSignalId);
+        }
+        super.destroy();
     }
 });
 
@@ -96,97 +164,52 @@ export class WorkspaceIndicatorFeature {
 
     constructor(settings) {
         this._settings = settings;
-        this._settingsConnection = null;
         this._indicator = null;
-        this._workspaceChangedId = null;
-        this._hideSettingId = null;
-        this._positionSettingId = null;
-        this._indexSettingId = null;
+        this._settingsConnections = [];
     }
 
     // ------------------------
     // --- Enable & Cleanup ---
     // ------------------------
-    
+        
     enable() {
-        this._settingsConnection = this._settings.connect(
-            'changed::enable-workspace-indicator',
-            () => this._updateWorkspaceIndicator()
+        this._settingsConnections.push(
+            this._settings.connect('changed::enable-workspace-indicator', () => this._updateState())
         );
-        
-        this._hideSettingId = this._settings.connect(
-            'changed::hide-workspace-indices',
-            () => this._rebuildIndicator()
+
+        const rebuild = () => { if (this._indicator) this._rebuild(); };
+        this._settingsConnections.push(
+            this._settings.connect('changed::workspace-indicator-position', rebuild)
         );
-        
-        this._positionSettingId = this._settings.connect(
-            'changed::workspace-indicator-position',
-            () => this._rebuildIndicator()
+        this._settingsConnections.push(
+            this._settings.connect('changed::workspace-indicator-index', rebuild)
         );
-        
-        this._indexSettingId = this._settings.connect(
-            'changed::workspace-indicator-index',
-            () => this._rebuildIndicator()
-        );
-        
-        this._updateWorkspaceIndicator();
+ 
+        this._updateState();
     }
 
     disable() {
-        if (this._settingsConnection) {
-            this._settings.disconnect(this._settingsConnection);
-            this._settingsConnection = null;
-        }
-        
-        if (this._hideSettingId) {
-            this._settings.disconnect(this._hideSettingId);
-            this._hideSettingId = null;
-        }
-
-        if (this._positionSettingId) {
-            this._settings.disconnect(this._positionSettingId);
-            this._positionSettingId = null;
-        }
-        
-        if (this._indexSettingId) {
-            this._settings.disconnect(this._indexSettingId);
-            this._indexSettingId = null;
-        }
-        
-        this._destroyIndicator();
+        this._settingsConnections.forEach(id => this._settings.disconnect(id));
+        this._settingsConnections = [];
+        this._destroy();
     }
 
     // -------------
     // --- Logic ---
     // -------------
 
-    // Identifies whether the feature is enabled
-    _updateWorkspaceIndicator() {
+    // Checks settings to decide whether to create or destroy the indicator
+    _updateState() {
         if (this._settings.get_boolean('enable-workspace-indicator')) {
-            if (!this._indicator) {
-                this._indicator = new MyIndicator(this._settings);
-                
-                const position = this._settings.get_string('workspace-indicator-position');
-                const index = this._settings.get_int('workspace-indicator-index');
-                Main.panel.addToStatusArea('quibbles-workspace-indicator', this._indicator, index, position);
-                
-                this._workspaceChangedId = global.workspace_manager.connect(
-                    'active-workspace-changed',
-                    this._rebuildIndicator.bind(this)
-                );
-            }
+            if (!this._indicator) this._rebuild();
         } else {
-            if (this._indicator) {
-                this._destroyIndicator();
-            }
+            this._destroy();
         }
     }
     
-    // Changes what the indicator displays
-    _rebuildIndicator() {
-        if (!this._indicator) return;
-
-        this._indicator?.destroy();
+    // Destroys and recreates the indicator
+    _rebuild() {
+        this._destroy();
         this._indicator = new MyIndicator(this._settings);
         
         const position = this._settings.get_string('workspace-indicator-position');
@@ -194,13 +217,11 @@ export class WorkspaceIndicatorFeature {
         Main.panel.addToStatusArea('quibbles-workspace-indicator', this._indicator, index, position);
     }
 
-    // Disconnects and destroys the indicator
-    _destroyIndicator() {
-        if (this._workspaceChangedId) {
-            global.workspace_manager.disconnect(this._workspaceChangedId);
-            this._workspaceChangedId = null;
+    // Safely removes the indicator from the panel
+    _destroy() {
+        if (this._indicator) {
+            this._indicator.destroy();
+            this._indicator = null;
         }
-        this._indicator?.destroy();
-        this._indicator = null;
     }
 }

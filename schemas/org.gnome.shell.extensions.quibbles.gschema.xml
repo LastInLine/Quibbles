@@ -9,13 +9,6 @@
       <default>false</default>
       <summary>Enable the custom workspace indicator.</summary>
     </key>
-    
-    <!-- Workspace menu item hiding -->
-    <key name="hide-workspace-indices" type="s">
-      <default>''</default>
-      <summary>A comma-separated list of workspace indices to hide.</summary>
-      <description>For power-users (e.g., PaperWM) who want to manually hide specific workspaces from the menu. This is zero-indexed. Example: 1, 2</description>
-    </key>
 
     <!-- Workspace indicator position -->
     <key name="workspace-indicator-position" type="s">

@@ -280,28 +280,6 @@ export class TopPanelPage {
             'sensitive',
             Gio.SettingsBindFlags.DEFAULT
         );
-
-        // --- Hide Indices ---
-        const hideIndicesRow = new Adw.ActionRow({
-            title: _('Hide Workspaces from Menu'),
-            subtitle: _('Comma-separated IDs (e.g. 0, 1).'),
-        });
-        
-        const entry = new Gtk.Entry({
-            text: settings.get_string('hide-workspace-indices'),
-            valign: Gtk.Align.CENTER,
-        });
-        
-        settings.bind('hide-workspace-indices', entry, 'text', Gio.SettingsBindFlags.DEFAULT);
-        hideIndicesRow.add_suffix(entry);
-        wsGroup.add(hideIndicesRow);
-
-        settings.bind(
-            'enable-workspace-indicator',
-            hideIndicesRow,
-            'sensitive',
-            Gio.SettingsBindFlags.DEFAULT
-        );
         
         // --- Activiites Button ---
         const actRow = new Adw.ActionRow({ title: _('Activities Button') });
