@@ -22,6 +22,7 @@ import { WorkspaceIndicatorFeature } from './modules/workspaceIndicator.js';
 
 // Lock Screen Features
 import LockscreenClock from './modules/lockscreenClock.js';
+import LockscreenFixModule from './modules/lockscreenFix.js';
 import LockscreenUnblank from './modules/lockscreenUnblank.js';
 
 // --- Main Extension Class ---
@@ -47,6 +48,8 @@ export default class QuibblesExtension extends Extension {
         this._clockModule = null;
         this._unblankModule = null;
         this._unblankToggleSignalId = null; 
+        this._wallpaperFixModule = null;
+        this._wallpaperFixSignalId = null;
         
         // --- Session Management ---
         this._sessionId = null;
@@ -61,17 +64,39 @@ export default class QuibblesExtension extends Extension {
 
     _enableLockScreen() {
         this._lockSettings = this.getSettings();
-
-        if (!this._clockModule) {
-            this._clockModule = new LockscreenClock();
-            this._clockModule.enable(this._lockSettings);
-        }
-
+        this._clockSignalId = this._lockSettings.connect(
+            'changed::clock-enabled', 
+            () => this._checkClockState()
+        );
+        
+        this._checkClockState();
         this._unblankToggleSignalId = this._lockSettings.connect(
             'changed::enable-unblank',
             () => this._checkUnblankState()
         );
+        
         this._checkUnblankState();
+        this._wallpaperFixSignalId = this._lockSettings.connect(
+            'changed::fix-lockscreen-black-screen',
+            () => this._checkWallpaperFixState()
+        );
+        
+        this._checkWallpaperFixState();
+    }
+
+    _checkClockState() {
+        if (this._lockSettings.get_boolean('clock-enabled')) {
+            if (!this._clockModule) {
+                this._clockModule = new LockscreenClock();
+                this._clockModule.enable(this._lockSettings);
+            }
+        } 
+        else {
+            if (this._clockModule) {
+                this._clockModule.disable();
+                this._clockModule = null;
+            }
+        }
     }
 
     _checkUnblankState() {
@@ -87,9 +112,22 @@ export default class QuibblesExtension extends Extension {
             }
         }
     }
+    
+    _checkWallpaperFixState() {
+        if (this._lockSettings.get_boolean('fix-lockscreen-black-screen')) {
+            if (!this._wallpaperFixModule) {
+                this._wallpaperFixModule = new LockscreenFixModule(this._lockSettings);
+                this._wallpaperFixModule.enable();
+            }
+        } else {
+            if (this._wallpaperFixModule) {
+                this._wallpaperFixModule.disable();
+                this._wallpaperFixModule = null;
+            }
+        }
+    }
 
     _disableLockScreen() {
-        // Clean up destroy signal handler
         if (this._unlockDialog && this._unlockDialogDestroyId) {
             this._unlockDialog.disconnect(this._unlockDialogDestroyId);
             this._unlockDialogDestroyId = null;
@@ -101,6 +139,16 @@ export default class QuibblesExtension extends Extension {
             this._unblankToggleSignalId = null;
         }
         
+        if (this._wallpaperFixSignalId) {
+            this._lockSettings.disconnect(this._wallpaperFixSignalId);
+            this._wallpaperFixSignalId = null;
+        }
+        
+        if (this._clockSignalId) {
+            this._lockSettings.disconnect(this._clockSignalId);
+            this._clockSignalId = null;
+        }
+        
         if (this._clockModule) {
             this._clockModule.disable();
             this._clockModule = null;
@@ -109,6 +157,11 @@ export default class QuibblesExtension extends Extension {
         if (this._unblankModule) {
             this._unblankModule.disable();
             this._unblankModule = null;
+        }
+        
+        if (this._wallpaperFixSignalId) {
+            this._lockSettings.disconnect(this._wallpaperFixSignalId);
+            this._wallpaperFixSignalId = null;
         }
         
         this._lockSettings = null;
@@ -221,7 +274,7 @@ export default class QuibblesExtension extends Extension {
 
         } else {
             // This is the USER SESSION
-            if (this._clockModule || this._unblankModule) {
+            if (this._clockModule || this._unblankModule || this._wallpaperFixModule) {
                 this._disableLockScreen();
             }
             
@@ -263,8 +316,14 @@ export default class QuibblesExtension extends Extension {
     }
 
     disable() {
-        // This extension uses 'unlock-dialog' session mode to modify the lock screen
-        // clock font. All UI elements and listeners are cleaned up here.
+    
+        /** 
+         * This comment is required per EGO guidelines:
+         * This extension uses 'unlock-dialog' session mode to modify the lockscreen
+         * clock and force load the wallpaper to fix the bug where the wallpaper doesn't
+         * always load in multi-monitor setups. All UI elements and listeners are cleaned up here.
+         */
+         
         if (this._sessionId) {
             Main.sessionMode.disconnect(this._sessionId);
             this._sessionId = null;

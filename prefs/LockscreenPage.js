@@ -1,9 +1,5 @@
 // Quibbles - Copyright (C) 2025 LastInLine - See LICENSE file for details.
 
-/**
- * Preferences page for Lockscreen settings.
- */
-
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
@@ -17,28 +13,40 @@ export class LockscreenPage {
             iconName: 'system-lock-screen-symbolic'
         });
 
-        // =================================
-        // === GROUP 1: Lockscreen Clock ===
-        // =================================
-        const clockGroup = new Adw.PreferencesGroup({
-            title: _('Lockscreen Clock'),
+        // ======================================
+        // === GROUP 1: Appearance ===
+        // ======================================
+        const appearanceGroup = new Adw.PreferencesGroup({
+            title: _('Appearance'),
         });
-        this.page.add(clockGroup);
+        this.page.add(appearanceGroup);
 
-        // --- Reset Button ---
+
+        // --- Clock Enable Toggle ---
+        appearanceGroup.add(createSwitch(
+            _('Enable Custom Clock Font'),
+            null,
+            settings,
+            'clock-enabled'
+        ));
+
+        // --- Clock Font Selection Row ---
+        const fontRow = new Adw.ActionRow({
+            title: _('Custom Clock Font'),
+        });
+        appearanceGroup.add(fontRow);
+
+        const fontControlsBox = new Gtk.Box({
+            spacing: 12,
+            valign: Gtk.Align.CENTER,
+        });
+
         const resetButton = new Gtk.Button({
             icon_name: 'edit-undo-symbolic',
             tooltip_text: _('Reset to Default'),
             css_classes: ['flat'],
             valign: Gtk.Align.CENTER,
         });
-        clockGroup.set_header_suffix(resetButton);
-
-        // --- Font Button Row ---
-        const fontRow = new Adw.ActionRow({
-            title: _('Custom Clock Font'),
-        });
-        clockGroup.add(fontRow);
 
         const fontButton = new Gtk.FontButton({
             valign: Gtk.Align.CENTER,
@@ -47,9 +55,6 @@ export class LockscreenPage {
             use_size: false,
             level: Gtk.FontChooserLevel.FONT | Gtk.FontChooserLevel.SIZE | Gtk.FontChooserLevel.STYLE,
         });
-
-        fontRow.add_suffix(fontButton);
-        fontRow.set_activatable_widget(fontButton); 
 
         fontButton.connect('font-set', () => {
             const newFontDescString = fontButton.get_font();
@@ -61,18 +66,37 @@ export class LockscreenPage {
             fontButton.set_font('');
         });
 
+        fontControlsBox.append(resetButton);
+        fontControlsBox.append(fontButton);
+        fontRow.add_suffix(fontControlsBox);
+
+        settings.bind(
+            'clock-enabled',
+            fontRow,
+            'sensitive',
+            Gio.SettingsBindFlags.DEFAULT
+        );
+        
+        // --- Wallpaper Fix Toggle ---
+        appearanceGroup.add(createSwitch(
+            _('Ensure Wallpaper Always Loads'),
+            _('Prevents occasionally missing wallpaper in multi-monitor setups.'),
+            settings,
+            'fix-lockscreen-black-screen'
+        ));
+
+
         // ===================================
-        // === GROUP 2: Lockscreen Unblank ===
+        // === GROUP 2: Visibility ===
         // ===================================
         const unblankGroup = new Adw.PreferencesGroup({
-            title: _('Lockscreen Unblank'),
-            description: _('Delays or prevents the lock screen from fading to black.'),
+            title: _('Visibility'),
         });
         this.page.add(unblankGroup);
 
         // --- Master Enable Toggle ---
         unblankGroup.add(createSwitch(
-            _('Enable Lockscreen Unblank'),
+            _('Delay Screen Off'),
             null,
             settings,
             'enable-unblank'
@@ -80,7 +104,7 @@ export class LockscreenPage {
 
         // --- AC Power Setting ---
         const powerRow = createSwitch(
-            _('Unblank Only on AC Power'),
+            _('Only on AC Power'),
             null,
             settings,
             'power'
@@ -96,7 +120,7 @@ export class LockscreenPage {
         
         // --- Timeout ---
         const timeRow = new Adw.ActionRow({
-            title: _('Time until blank'),
+            title: _('Time Until Screen Off'),
         });
 
         const timeoutStrings = [

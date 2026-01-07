@@ -37,7 +37,7 @@ https://github.com/user-attachments/assets/0664e52f-6d27-4b90-bbc1-bc5374a9c17e
   
   ![Weather on the date menu button](images/date-weather.png)
   
-- **Unblank the lockscreen**
+- **Delay the monitor turning off when locked**
   - Wishing there was some kind of state between "awake and in use" and "monitors off"? That's right, that thing that's been on every computer for decades has returned in a degraded, less aesthetically variable state.
   - Used with attribution from the excellent [Unblank lock screen](https://github.com/sunwxg/gnome-shell-extension-unblank) by Xiaoguang Wang.
 - **Change the lockscreen clock font and size**
@@ -45,6 +45,8 @@ https://github.com/user-attachments/assets/0664e52f-6d27-4b90-bbc1-bc5374a9c17e
 
 https://github.com/user-attachments/assets/27dcd960-2c69-4b53-be29-d8f2072f93f5
 
+- **Fix the bug where occasionally the wallpaper isn't present on the lockscreen**
+  - There are no customization features here, unless you consider "working consistently as expected" to be custom.
 - **Add shortcuts to the system icon row in the Quick Settings menu**
   - Do you find it odd that there's a screenshot button next to the Settings button as though they were related? Do you wish there were links here to frequently used applications that should be in the Settings but aren't such as Tweaks or Extensions? Are you missing a tray where you could drop links to arbitrary applications for quick access which has been a feature common across operating systems for thirty years? If the answer to any of those questions is "yes" then you might like this feature.
   - Adapted from my longtime favorite [Tweaks & Extensions in System Menu](https://github.com/F-i-f/tweaks-system-menu) by Philippe Troin (F-i-f).

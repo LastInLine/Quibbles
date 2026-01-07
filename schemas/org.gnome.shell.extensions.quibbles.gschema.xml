@@ -54,6 +54,19 @@
     
     <!-- === Lockscreen mods === -->
     
+    <!-- Lockscreen no-wallpaper fix master switch -->
+    <key name="fix-lockscreen-black-screen" type="b">
+      <default>false</default>
+      <summary>Fix Black Lockscreen</summary>
+      <description>Forces the lockscreen to render the desktop wallpaper to fix black screen bugs.</description>
+    </key>
+    
+     <!-- Lockscreen custom master switch -->
+    <key name="clock-enabled" type="b">
+      <default>true</default>
+      <summary>Enable Lockscreen Clock</summary>
+    </key>
+
     <!-- Lockscreen font -->
     <key name="font-desc" type="s">
       <default>' '</default>
