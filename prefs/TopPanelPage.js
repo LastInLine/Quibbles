@@ -1,4 +1,4 @@
-// Quibbles - Copyright (C) 2025 LastInLine - See LICENSE file for details.
+// Quibbles - Copyright (C) 2025-2026 LastInLine - See LICENSE file for details.
 
 /**
  * Preferences page for Top Panel settings which

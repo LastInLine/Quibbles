@@ -1,16 +1,10 @@
-// Quibbles - Copyright (C) 2025 LastInLine - See LICENSE file for details.
+// Quibbles - Copyright (C) 2025-2026 LastInLine - See LICENSE file for details.
 
 /**
  * Mouse Barrier Feature
  *
  * This file contains all the logic for removing
  * the top-right mouse pressure barrier.
- *
- * ARCHITECTURE NOTE:
- * The barrier is a low-level Meta.Barrier object which cannot be modified
- * to be "permeable"; it must be destroyed. To do this safely without crashing
- * the shell, the logic hooks into the LayoutManager's update function to
- * intercept barrier creation.
  */
 
 'use strict';

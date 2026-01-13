@@ -71,7 +71,7 @@ If someone else wants to clean things up and maintain it they are welcome to, of
 
 ## Copyright & Attributions
 
-Copyright (c) 2025, LastInLine, Quibbles
+Copyright (c) 2025-2026, LastInLine, Quibbles
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 

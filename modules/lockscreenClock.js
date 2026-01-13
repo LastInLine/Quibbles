@@ -1,4 +1,4 @@
-// Quibbles - Copyright (C) 2025 LastInLine - See LICENSE file for details.
+// Quibbles - Copyright (C) 2025-2026 LastInLine - See LICENSE file for details.
 
 /**
  * Lockscreen Clock Feature
@@ -12,7 +12,6 @@
 import GLib from 'gi://GLib';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import Pango from 'gi://Pango';
-import { waitFor } from './shellUtils.js';
 
 // --------------------
 // --- EXPORT CLASS ---
@@ -25,7 +24,8 @@ export default class LockscreenClock {
         this._timeLabel = null;
         this._originalTimeStyle = null;
         this._settingsChangedId = null;
-        this._timeoutId = null;
+        this._lockStateChangedId = null;
+        this._clockDestroyId = null;
     }
 
     // ------------------------
@@ -34,57 +34,80 @@ export default class LockscreenClock {
 
     enable(settings) {
         this._settings = settings;
-        this._waitForClock();
+
+        this._lockStateChangedId = Main.screenShield.connect('locked-changed', () => {
+            if (Main.screenShield.locked) {
+                this._findAndInitClock();
+            }
+        });
+
+        if (Main.screenShield.locked) {
+            this._findAndInitClock();
+        }
     }
 
     disable() {
-        if (this._timeoutId) {
-            GLib.source_remove(this._timeoutId);
-            this._timeoutId = null;
-        }
-
-        if (this._timeLabel) {
-            try {
-                this._timeLabel.set_style(this._originalTimeStyle);
-            } catch (e) {
-                console.warn(`[Quibbles] Lockscreen clock not present to restore: ${e.message}`);
-            }
+        if (this._lockStateChangedId) {
+            Main.screenShield.disconnect(this._lockStateChangedId);
+            this._lockStateChangedId = null;
         }
 
         if (this._settings && this._settingsChangedId) {
             this._settings.disconnect(this._settingsChangedId);
+            this._settingsChangedId = null;
         }
 
-        this._timeLabel = null;
+        if (this._timeLabel) {
+            if (this._clockDestroyId) {
+                this._timeLabel.disconnect(this._clockDestroyId);
+                this._clockDestroyId = null;
+            }
+            
+            if (Main.screenShield.locked) {
+                if (this._originalTimeStyle !== null) {
+                    this._timeLabel.set_style(this._originalTimeStyle);
+                }
+            }
+
+            this._timeLabel = null;
+        }
+
         this._originalTimeStyle = null;
         this._settings = null;
-        this._settingsChangedId = null;
     }
 
     // -------------
     // --- Logic ---
     // -------------
 
-    // Uses the shared utility to wait for the clock element to appear
-    _waitForClock() {
-        this._timeoutId = waitFor(
-            () => Main.screenShield._dialog?._clock?._time,
-            () => {
-                const clock = Main.screenShield._dialog._clock;
-                this._initClock(clock);
-                this._timeoutId = null;
-            }
-        );
+    // Locates the clock widget within the existing lock screen dialog
+    _findAndInitClock() {
+        const clock = Main.screenShield._dialog?._clock;
+        
+        if (clock) {
+            this._initClock(clock);
+        }
     }
 
     // Hooks up the settings listener and saves the original state
     _initClock(clock) {
+        if (this._timeLabel === clock._time) {
+            return;
+        }
+
         this._timeLabel = clock._time;
         this._originalTimeStyle = this._timeLabel.get_style() || '';
         
-        this._settingsChangedId = this._settings.connect('changed::font-desc', () => {
-            this._applyStyle();
+        this._clockDestroyId = this._timeLabel.connect('destroy', () => {
+            this._timeLabel = null;
+            this._clockDestroyId = null;
         });
+        
+        if (!this._settingsChangedId) {
+            this._settingsChangedId = this._settings.connect('changed::font-desc', () => {
+                this._applyStyle();
+            });
+        }
 
         this._applyStyle();
     }
@@ -96,7 +119,7 @@ export default class LockscreenClock {
         }
 
         const fontString = this._settings.get_string('font-desc');
-        let css = '';
+        const styleParts = [];
 
         if (fontString) {
             const fontDesc = Pango.FontDescription.from_string(fontString);
@@ -105,22 +128,18 @@ export default class LockscreenClock {
             const weight = fontDesc.get_weight();
             const style = fontDesc.get_style();
 
-            if (family) { css += `font-family: "${family}"; `; }
-            if (size > 0) { css += `font-size: ${size}px; `; }
-            if (weight) { css += `font-weight: ${weight}; `; }
-            if (style === Pango.Style.ITALIC) { css += 'font-style: italic; '; }
-            else if (style === Pango.Style.OBLIQUE) { css += 'font-style: oblique; '; }
+            if (family) { styleParts.push(`font-family: "${family}"`); }
+            if (size > 0) { styleParts.push(`font-size: ${size}px`); }
+            if (weight) { styleParts.push(`font-weight: ${weight}`); }
+            
+            if (style === Pango.Style.ITALIC) { styleParts.push('font-style: italic'); }
+            else if (style === Pango.Style.OBLIQUE) { styleParts.push('font-style: oblique'); }
         }
         
-        try {
-            if (css) {
-                this._timeLabel.set_style(css);
-            } else {
-                this._timeLabel.set_style(this._originalTimeStyle);
-            }
-        } catch (e) {
-            console.warn(`[Quibbles] Failed to apply clock style: ${e.message}`);
-            this._timeLabel = null;
+        if (styleParts.length > 0) {
+            this._timeLabel.set_style(styleParts.join('; '));
+        } else {
+            this._timeLabel.set_style(this._originalTimeStyle);
         }
     }
 }

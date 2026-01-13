@@ -1,4 +1,4 @@
-// Quibbles - Copyright (C) 2025 LastInLine - See LICENSE file for details.
+// Quibbles - Copyright (C) 2025-2026 LastInLine - See LICENSE file for details.
 
 /**
  * Workspace Indicator Feature
@@ -24,29 +24,19 @@ const PAPERWM_UUID = 'paperwm@paperwm.github.com';
 // --- HELPER FUNCTION ---
 // -----------------------
 
-// Tries to get PaperWM's internal state for workspace visibility
-function getPaperWMVisibleIndices() {
+function _getPaperWMVisibleIndices() {
     const visible = new Set();
-    
-    // Wrapped in try/catch in case user disables PaperWM after load
-    try {
-        const paperwm = Main.extensionManager.lookup(PAPERWM_UUID);
-        
-        if (paperwm && 
-            paperwm.state === 1 && 
-            paperwm.stateObj && 
-            Array.isArray(paperwm.stateObj.modules)) {
-            
-            const TilingMod = paperwm.stateObj.modules.find(m => m && m.Space);
-            
-            if (TilingMod && TilingMod.spaces && TilingMod.spaces.monitors) {
-                for (const space of TilingMod.spaces.monitors.values()) {
-                    if (space) visible.add(space.index);
-                }
+    const paperwm = Main.extensionManager.lookup(PAPERWM_UUID);
+    const modules = paperwm?.stateObj?.modules;
+    const tilingMod = Array.isArray(modules) ? modules.find(m => m?.Space) : null;
+    const monitors = tilingMod?.spaces?.monitors;
+
+    if (monitors) {
+        for (const space of monitors.values()) {
+            if (space?.index !== undefined) {
+                visible.add(space.index);
             }
         }
-    } catch (e) {
-        console.warn("Quibbles: PaperWM detection failed:", e);
     }
     
     return visible;
@@ -56,7 +46,6 @@ function getPaperWMVisibleIndices() {
 // --- HELPER CLASS ---
 // --------------------
 
-// Builds the indicator
 const MyIndicator = GObject.registerClass(
 class MyIndicator extends PanelMenu.Button {
     _init(settings) {
@@ -73,18 +62,19 @@ class MyIndicator extends PanelMenu.Button {
 
         this.add_child(this._label);
         this._updateLabel();
-
-        // Placeholder item required to make the button clickable before lazy-load
-        this.menu.addMenuItem(new PopupMenu.PopupMenuItem("Loading...", { reactive: false }));
-
+        this._refreshMenu();
         this._wsSignalId = this._workspaceManager.connect(
             'active-workspace-changed', 
-            () => this._updateLabel()
+            () => {
+                this._updateLabel();
+            }
         );
  
         this._nameSignalId = this._wmSettings.connect(
             'changed::workspace-names', 
-            () => this._updateLabel()
+            () => {
+                this._updateLabel();
+            }
         );
 
         this.menu.connect('open-state-changed', (menu, isOpen) => {
@@ -107,16 +97,17 @@ class MyIndicator extends PanelMenu.Button {
         this.menu.removeAll();
 
         // Header
+        const headerStyle = 'padding-top: 0px; padding-bottom: 6px; min-height: 0;';
+        const headerLabelStyle = 'font-size: 0.8em; font-weight: bold; color: #c0c0c0;';
         const menuHeader = new PopupMenu.PopupMenuItem('Switch to', { reactive: false });
-        menuHeader.style = 'padding-top: 0px; padding-bottom: 6px; min-height: 0;';
-        menuHeader.label.style = 'font-size: 0.8em; font-weight: bold; color: #c0c0c0;';
+        menuHeader.style = headerStyle;
+        menuHeader.label.style = headerLabelStyle;
         this.menu.addMenuItem(menuHeader);
 
         const nWorkspaces = this._workspaceManager.get_n_workspaces();
         const activeIndex = this._workspaceManager.get_active_workspace_index();
         const names = this._wmSettings.get_strv('workspace-names');
-        
-        const visibleIndices = getPaperWMVisibleIndices();
+        const visibleIndices = _getPaperWMVisibleIndices();
         visibleIndices.add(activeIndex);
 
         let addedAny = false;
@@ -139,12 +130,11 @@ class MyIndicator extends PanelMenu.Button {
 
         if (!addedAny) {
             this.menu.removeAll();
-            const testItem = new PopupMenu.PopupMenuItem('All workspaces visible', { reactive: false });
-            this.menu.addMenuItem(testItem);
+            const infoItem = new PopupMenu.PopupMenuItem('All workspaces visible', { reactive: false });
+            this.menu.addMenuItem(infoItem);
         }
     }
 
-    // Cleans up signals when the indicator is removed
     destroy() {
         if (this._wsSignalId) {
             this._workspaceManager.disconnect(this._wsSignalId);
@@ -178,6 +168,7 @@ export class WorkspaceIndicatorFeature {
         );
 
         const rebuild = () => { if (this._indicator) this._rebuild(); };
+        
         this._settingsConnections.push(
             this._settings.connect('changed::workspace-indicator-position', rebuild)
         );

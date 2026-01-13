@@ -1,5 +1,6 @@
 // Quibbles - Copyright (C) 2025 LastInLine - See LICENSE file for details.
 
+
 /**
  * Lockscreen Wallpaper Fix
  *
@@ -7,7 +8,7 @@
  * lockscreen which occasionally fails to display on multi-monitor setups.
  *
  */
-
+ 
 'use strict';
 
 import St from 'gi://St';
@@ -16,6 +17,9 @@ import Shell from 'gi://Shell';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as UnlockDialog from 'resource:///org/gnome/shell/ui/unlockDialog.js';
 import { InjectionManager } from 'resource:///org/gnome/shell/extensions/extension.js';
+
+const BLUR_RADIUS = 60;
+const BLUR_BRIGHTNESS = 0.55;
 
 // --------------------
 // --- EXPORT CLASS ---
@@ -32,28 +36,39 @@ export default class LockscreenFixModule {
     // ------------------------
     // --- Enable & Cleanup ---
     // ------------------------
-
+   
     enable() {
         if (!this._settings.get_boolean('fix-lockscreen-black-screen'))
             return;
             
+        const bgSettings = this._bgSettings;
+        const interfaceSettings = this._interfaceSettings;
+
         this._injectionManager.overrideMethod(UnlockDialog.UnlockDialog.prototype, '_createBackground',
             () => {
                 return function (monitorIndex) {
-                    const BLUR_RADIUS = 60;
-                    const BLUR_BRIGHTNESS = 0.55;
-                    
-                    const bgSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.background' });
-                    const interfaceSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
-
                     const themeContext = St.ThemeContext.get_for_stage(global.stage);
                     const monitor = Main.layoutManager.monitors[monitorIndex];
                     
-                    const colorScheme = interfaceSettings.get_string('color-scheme');
-                    const uriKey = (colorScheme === 'prefer-dark') ? 'picture-uri-dark' : 'picture-uri';
+                    const isDark = interfaceSettings.get_string('color-scheme') === 'prefer-dark';
+                    const uriKey = isDark ? 'picture-uri-dark' : 'picture-uri';
                     const imageUri = bgSettings.get_string(uriKey);
                     
-                    const cssUrl = imageUri.replace('file://', '');
+                    if (!imageUri) return;
+
+                    let file;
+                    if (imageUri.startsWith('file://')) {
+                        file = Gio.File.new_for_uri(imageUri);
+                    } else {
+                        file = Gio.File.new_for_path(imageUri);
+                    }
+
+                    const filePath = file.get_path();
+
+                    if (!filePath) {
+                        console.warn(`[Quibbles] Could not resolve wallpaper path from: ${imageUri}`);
+                        return;
+                    }
 
                     const blurEffect = new Shell.BlurEffect({
                         name: 'lockscreen-fix-blur',
@@ -65,7 +80,7 @@ export default class LockscreenFixModule {
                     const widget = new St.Widget({
                         style_class: 'lock-dialog-background',
                         style: `
-                            background-image: url("${cssUrl}");
+                            background-image: url("file://${filePath}");
                             background-size: cover;
                             background-position: center;
                         `,
@@ -92,5 +107,8 @@ export default class LockscreenFixModule {
         if (Main.screenShield._dialog) {
             Main.screenShield._dialog._updateBackgrounds();
         }
+        
+        this._bgSettings = null;
+        this._interfaceSettings = null;
     }
 }

@@ -48,8 +48,14 @@
     
     <!-- Visible items -->
     <key name="visible-items" type="as">
-      <default>["Scratch", "Take Screenshot", "Hide", "Maximize", "Move", "Resize", "Always on Top", "Always on Visible Workspace", "Move to Workspace Left", "Move to Workspace Right", "Move to Monitor Left", "Move to Monitor Right", "Close"]</default>
+      <default>['OTHER', 'screenshot', 'hide', 'minimize', 'maximize', 'unmaximize', 'move', 'resize', 'always-on-top', 'always-on-visible-workspace', 'move-to-workspace-left', 'move-to-workspace-right', 'move-to-monitor-left', 'move-to-monitor-right', 'SEPARATOR', 'close']</default>
       <summary>The window menu items to display.</summary>
+    </key>
+    
+    <!-- Custom items -->
+    <key name="available-custom-items" type="as">
+      <default>[]</default>
+      <summary>Pool of user-defined custom menu item labels</summary>
     </key>
     
     <!-- === Lockscreen mods === -->
@@ -74,25 +80,25 @@
       <description>The Pango font description string for the lockscreen clock.</description>
     </key>
 
-    <!-- Lockscreen Unblank master switch -->
-    <key name="enable-unblank" type="b">
+    <!-- Lockscreen timeout master switch -->
+    <key name="enable-timeout" type="b">
       <default>true</default>
-      <summary>Enable the "Unblank Lockscreen" feature</summary>
-      <description>If true, the lock screen will not fade to black.</description>
+      <summary>Enable the "Lockscreen Timeout" feature</summary>
+      <description>If true, the lockscreen will delay fading to black.</description>
     </key>
     
-    <!-- Lockscreen Unblank on AC -->
+    <!-- Lockscreen timeout on AC -->
     <key name="power" type="b">
       <default>true</default>
-      <summary>Only unblank when on AC power</summary>
-      <description>If true, the screen will still blank when the device is on battery power.</description>
+      <summary>Only delay screen off when on AC power</summary>
+      <description>If true, the screen will turn off when the device is on battery power.</description>
     </key>
     
-    <!-- Lockscreen Unblank timeout-->
+    <!-- Lockscreen timeout-->
     <key name="time" type="i">
       <default>0</default>
       <summary>Screen blank timeout (in seconds)</summary>
-      <description>Time in seconds before the screen blanks. Set to 0 to disable screen blanking entirely.</description>
+      <description>Time in seconds before the screen turns off. Set to 0 to disable screen off delay entirely.</description>
     </key>
 
     <!-- Date Menu Button -->

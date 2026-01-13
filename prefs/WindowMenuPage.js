@@ -1,32 +1,36 @@
-// Quibbles - Copyright (C) 2025 LastInLine - See LICENSE file for details.
+// Quibbles - Copyright (C) 2025-2026 LastInLine - See LICENSE file for details.
 
-/**
- * Preferences page for Window Menu settings.
- */
- 
 import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
+import Gettext from 'gettext'; 
 import { gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import { createSwitch } from './prefsUtils.js';
 
-const ALL_MENU_ITEMS = [
-    'Take Screenshot',
-    'Hide',
-    'Maximize',
-    'Move',
-    'Resize',
-    'Always on Top',
-    'Always on Visible Workspace',
-    'Move to Workspace Left',
-    'Move to Workspace Right',
-    'Move to Monitor Left',
-    'Move to Monitor Right',
-    'Close',
-];
+const SHELL_DOMAIN = 'gnome-shell';
 
-// List Builder - holds reset button
+const STANDARD_ACTIONS_MAP = {
+    'minimize': 'Minimize',
+    'unmaximize': 'Unmaximize',
+    'maximize': 'Maximize',
+    'move': 'Move',
+    'resize': 'Resize',
+    'always-on-top': 'Always on Top',
+    'always-on-visible-workspace': 'Always on Visible Workspace',
+    'move-to-workspace-left': 'Move to Workspace Left',
+    'move-to-workspace-right': 'Move to Workspace Right',
+    'move-to-workspace-up': 'Move to Workspace Up',
+    'move-to-workspace-down': 'Move to Workspace Down',
+    'move-to-monitor-up': 'Move to Monitor Up',
+    'move-to-monitor-down': 'Move to Monitor Down',
+    'move-to-monitor-left': 'Move to Monitor Left',
+    'move-to-monitor-right': 'Move to Monitor Right',
+    'screenshot': 'Take Screenshot',
+    'close': 'Close',
+    'hide': 'Hide'
+};
+
 const WindowMenuBuilder = GObject.registerClass(
     class WindowMenuBuilder extends Adw.PreferencesGroup {
         constructor(settings) {
@@ -38,10 +42,7 @@ const WindowMenuBuilder = GObject.registerClass(
             this._settings = settings;
             this._displayedRows = [];
 
-            const headerBox = new Gtk.Box({
-                spacing: 6,
-                orientation: Gtk.Orientation.HORIZONTAL,
-            });
+            const headerBox = new Gtk.Box({ spacing: 6, orientation: Gtk.Orientation.HORIZONTAL });
 
             const resetButton = new Gtk.Button({
                 icon_name: 'edit-undo-symbolic',
@@ -50,27 +51,29 @@ const WindowMenuBuilder = GObject.registerClass(
             });
             resetButton.connect('clicked', () => {
                 this._settings.reset('visible-items');
+                this._settings.reset('available-custom-items');
             });
             headerBox.append(resetButton);
 
             const addButton = new Gtk.Button({
-                child: new Adw.ButtonContent({
-                    icon_name: 'list-add-symbolic',
-                    label: _('Add...'),
-                }),
-                tooltip_text: _('Add a menu item or separator'),
+                child: new Adw.ButtonContent({ icon_name: 'list-add-symbolic', label: _('Add...') }),
+                tooltip_text: _('Add a menu item'),
             });
             addButton.connect('clicked', this._onAdd.bind(this));
             headerBox.append(addButton);
 
             this.set_header_suffix(headerBox);
 
-            this._settings.connect(
-                'changed::visible-items',
-                this._refreshList.bind(this)
-            );
-
+            this._settings.connect('changed::visible-items', this._refreshList.bind(this));
             this._refreshList();
+        }
+
+        _getLabel(id) {
+            if (id === 'SEPARATOR') return _('--- Separator ---');
+            if (STANDARD_ACTIONS_MAP[id]) {
+                return Gettext.dgettext(SHELL_DOMAIN, STANDARD_ACTIONS_MAP[id]);
+            }
+            return id;
         }
 
         _onAdd() {
@@ -95,64 +98,83 @@ const WindowMenuBuilder = GObject.registerClass(
             toolbarView.set_content(scroll);
             dialog.set_content(toolbarView);
 
-            const currentItems = this._settings.get_strv('visible-items');
+            const activeItems = this._settings.get_strv('visible-items');
+            const customPool = this._settings.get_strv('available-custom-items');
+            
+            const isUsed = (id) => activeItems.includes(id);
 
-            // --- SECTION 1: Add Custom Item ---
+            // --- 1. Create New Custom Item ---
             const customGroup = new Adw.PreferencesGroup({
                 title: _('Custom Item'),
-                description: _('Add an item added by another extension (e.g. "Scratch").'),
+                description: _('Define items added by other extensions appearing at the top of the menu.'),
             });
             page.add(customGroup);
 
-            const customEntry = new Adw.EntryRow({
-                title: _('Item Label'),
-                show_apply_button: true,
-            });
-            
+            const customEntry = new Adw.EntryRow({ title: _('Item Label'), show_apply_button: true });
             customEntry.connect('apply', () => {
                 const text = customEntry.text.trim();
-                if (text && !currentItems.includes(text)) {
-                    const newList = [...currentItems, text];
-                    this._settings.set_strv('visible-items', newList);
+                if (text) {
+                    if (!customPool.includes(text)) {
+                        this._settings.set_strv('available-custom-items', [...customPool, text]);
+                    }
+                    if (!isUsed(text)) {
+                        this._settings.set_strv('visible-items', [text, ...activeItems]);
+                    }
                     dialog.close();
                 }
             });
             customGroup.add(customEntry);
 
-            // --- SECTION 2: Standard Items ---
-            const group = new Adw.PreferencesGroup({
-                title: _('Standard Items'),
-            });
-            page.add(group);
+            // --- 2. Available Items Pool ---
+            const poolGroup = new Adw.PreferencesGroup({ title: _('Available Items') });
+            page.add(poolGroup);
 
-            const addOption = (name, isSeparator = false) => {
-                const row = new Adw.ActionRow({
-                    title: isSeparator ? _('--- Separator ---') : _(name),
-                });
+            const addOption = (id, displayName, isCustom = false) => {
+                const row = new Adw.ActionRow({ title: displayName });
                 
-                const btn = new Gtk.Button({
+                const box = new Gtk.Box({ spacing: 6 });
+
+                const addBtn = new Gtk.Button({
                     icon_name: 'list-add-symbolic',
                     valign: Gtk.Align.CENTER,
                     css_classes: ['flat'],
+                    tooltip_text: _('Add to Menu'),
                 });
-
-                btn.connect('clicked', () => {
-                    const newList = [...currentItems, name];
-                    this._settings.set_strv('visible-items', newList);
+                addBtn.connect('clicked', () => {
+                    this._settings.set_strv('visible-items', [id, ...activeItems]);
                     dialog.close();
                 });
+                box.append(addBtn);
 
-                row.add_suffix(btn);
-                row.set_activatable_widget(btn);
-                group.add(row);
+                if (isCustom) {
+                    const delBtn = new Gtk.Button({
+                        icon_name: 'user-trash-symbolic',
+                        valign: Gtk.Align.CENTER,
+                        css_classes: ['flat', 'destructive-action'],
+                        tooltip_text: _('Delete Definition Permanently'),
+                    });
+                    delBtn.connect('clicked', () => {
+                        const newPool = customPool.filter(x => x !== id);
+                        this._settings.set_strv('available-custom-items', newPool);
+                        dialog.close(); 
+                    });
+                    box.append(delBtn);
+                }
+
+                row.add_suffix(box);
+                poolGroup.add(row);
             };
 
-            addOption('SEPARATOR', true);
+            addOption('SEPARATOR', this._getLabel('SEPARATOR'));
 
-            ALL_MENU_ITEMS.forEach(item => {
-                if (!currentItems.includes(item)) {
-                    addOption(item);
-                }
+            // Custom items in pool
+            customPool.forEach(id => {
+                if (!isUsed(id)) addOption(id, id, true);
+            });
+
+            // Standard items in pool
+            Object.keys(STANDARD_ACTIONS_MAP).forEach(id => {
+                if (!isUsed(id)) addOption(id, this._getLabel(id));
             });
 
             dialog.present();
@@ -161,22 +183,19 @@ const WindowMenuBuilder = GObject.registerClass(
         _refreshList() {
             const items = this._settings.get_strv('visible-items');
 
-            for (const row of this._displayedRows) {
-                this.remove(row);
-            }
+            for (const row of this._displayedRows) this.remove(row);
             this._displayedRows = [];
 
             items.forEach((item, index) => {
-                const isSeparator = (item === 'SEPARATOR');
-                const title = isSeparator ? _('--- Separator ---') : _(item);
+                // Hide 'OTHER' from the UI list
+                if (item === 'OTHER') return;
 
+                const title = this._getLabel(item);
                 const row = new Adw.ActionRow({ title: title });
 
-                const box = new Gtk.Box({
-                    orientation: Gtk.Orientation.HORIZONTAL,
-                    spacing: 6,
-                });
+                const box = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, spacing: 6 });
 
+                // --- MOVE UP ---
                 const upBtn = new Gtk.Button({
                     icon_name: 'go-up-symbolic',
                     valign: Gtk.Align.CENTER,
@@ -191,6 +210,7 @@ const WindowMenuBuilder = GObject.registerClass(
                 });
                 box.append(upBtn);
 
+                // --- MOVE DOWN ---
                 const downBtn = new Gtk.Button({
                     icon_name: 'go-down-symbolic',
                     valign: Gtk.Align.CENTER,
@@ -205,17 +225,26 @@ const WindowMenuBuilder = GObject.registerClass(
                 });
                 box.append(downBtn);
 
-                const delBtn = new Gtk.Button({
+                // --- REMOVE (Move to Pool) ---
+                const removeBtn = new Gtk.Button({
                     icon_name: 'user-trash-symbolic',
                     valign: Gtk.Align.CENTER,
                     tooltip_text: _('Remove'),
                     css_classes: ['flat', 'destructive-action'],
                 });
-                delBtn.connect('clicked', () => {
+                removeBtn.connect('clicked', () => {
                     items.splice(index, 1);
                     this._settings.set_strv('visible-items', items);
+                    
+                    // If custom, verify it's in the pool
+                    if (!STANDARD_ACTIONS_MAP[item] && item !== 'SEPARATOR') {
+                        const pool = this._settings.get_strv('available-custom-items');
+                        if (!pool.includes(item)) {
+                            this._settings.set_strv('available-custom-items', [...pool, item]);
+                        }
+                    }
                 });
-                box.append(delBtn);
+                box.append(removeBtn);
 
                 row.add_suffix(box);
                 this.add(row);
@@ -225,10 +254,6 @@ const WindowMenuBuilder = GObject.registerClass(
     }
 );
 
-// =================
-// === MAIN PAGE ===
-// =================
-
 export class WindowMenuPage {
     constructor(settings) {
         this.page = new Adw.PreferencesPage({
@@ -236,31 +261,12 @@ export class WindowMenuPage {
             iconName: 'open-menu-symbolic'
         });
 
-        // ==============================
-        // === GROUP 1: Master Switch ===
-        // ==============================
         const masterGroup = new Adw.PreferencesGroup();
         this.page.add(masterGroup);
+        masterGroup.add(createSwitch(_('Enable Window Menu Modifications'), null, settings, 'enable-window-menu'));
 
-        // --- Window Mods Toggle ---
-        masterGroup.add(createSwitch(
-            _('Enable Window Menu Modifications'),
-            null,
-            settings,
-            'enable-window-menu',
-        ));
-
-        // ===========================
-        // === GROUP 2: Menu Items ===
-        // ===========================
         const builderGroup = new WindowMenuBuilder(settings);
         this.page.add(builderGroup);
-
-        settings.bind(
-            'enable-window-menu',
-            builderGroup,
-            'sensitive',
-            Gio.SettingsBindFlags.DEFAULT
-        );
+        settings.bind('enable-window-menu', builderGroup, 'sensitive', Gio.SettingsBindFlags.DEFAULT);
     }
 }

@@ -1,4 +1,4 @@
-// Quibbles - Copyright (C) 2025 LastInLine - See LICENSE file for details.
+// Quibbles - Copyright (C) 2025-2026 LastInLine - See LICENSE file for details.
 
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
@@ -89,17 +89,17 @@ export class LockscreenPage {
         // ===================================
         // === GROUP 2: Visibility ===
         // ===================================
-        const unblankGroup = new Adw.PreferencesGroup({
+        const timeoutGroup = new Adw.PreferencesGroup({
             title: _('Visibility'),
         });
-        this.page.add(unblankGroup);
+        this.page.add(timeoutGroup);
 
         // --- Master Enable Toggle ---
-        unblankGroup.add(createSwitch(
+        timeoutGroup.add(createSwitch(
             _('Delay Screen Off'),
             null,
             settings,
-            'enable-unblank'
+            'enable-timeout'
         ));
 
         // --- AC Power Setting ---
@@ -109,10 +109,10 @@ export class LockscreenPage {
             settings,
             'power'
         );
-        unblankGroup.add(powerRow);
+        timeoutGroup.add(powerRow);
         
         settings.bind(
-            'enable-unblank',
+            'enable-timeout',
             powerRow,
             'sensitive',
             Gio.SettingsBindFlags.DEFAULT
@@ -145,10 +145,10 @@ export class LockscreenPage {
         
         timeRow.add_suffix(timeoutDropdown);
         timeRow.set_activatable_widget(timeoutDropdown);
-        unblankGroup.add(timeRow);
+        timeoutGroup.add(timeRow);
 
         settings.bind(
-            'enable-unblank',
+            'enable-timeout',
             timeRow,
             'sensitive',
             Gio.SettingsBindFlags.DEFAULT
