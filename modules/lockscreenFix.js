@@ -25,7 +25,7 @@ const BLUR_BRIGHTNESS = 0.55;
 // --- EXPORT CLASS ---
 // --------------------
 
-export default class LockscreenFixModule {
+export default class LockscreenFix {
     constructor(settings) {
         this._settings = settings;
         this._injectionManager = new InjectionManager();

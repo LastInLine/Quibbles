@@ -6,8 +6,6 @@
 
 'use strict';
 
-import GLib from 'gi://GLib';
-
 /**
  * Recursively searches a container for a child widget with a specific class name.
  * @param {Clutter.Actor} container - The parent widget to search

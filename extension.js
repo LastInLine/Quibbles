@@ -13,7 +13,7 @@ import { WindowMenuFeature } from './modules/windowMenu.js';
 import { WorkspaceIndicatorFeature } from './modules/workspaceIndicator.js';
 // Lock Screen Features
 import LockscreenClock from './modules/lockscreenClock.js';
-import LockscreenFixModule from './modules/lockscreenFix.js';
+import LockscreenFix from './modules/lockscreenFix.js';
 import LockscreenTimeoutFeature from './modules/lockscreenTimeout.js';
 
 export default class QuibblesExtension extends Extension {
@@ -40,13 +40,13 @@ export default class QuibblesExtension extends Extension {
         }
         
         if (this._settings.get_boolean('enable-timeout')) {
-            const timeout = new LockscreenUnblankFeature();
+            const timeout = new LockscreenTimeoutFeature();
             timeout.enable(this._settings);
             this._lockModules.push(timeout);
         }
 
         if (this._settings.get_boolean('fix-lockscreen-black-screen')) {
-            const fix = new LockscreenFixModule(this._settings);
+            const fix = new LockscreenFix(this._settings);
             fix.enable();
             this._lockModules.push(fix);
         }

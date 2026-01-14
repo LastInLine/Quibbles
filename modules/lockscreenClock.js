@@ -9,7 +9,6 @@
  
 'use strict';
 
-import GLib from 'gi://GLib';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import Pango from 'gi://Pango';
 

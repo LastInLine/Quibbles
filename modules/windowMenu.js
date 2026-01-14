@@ -52,22 +52,34 @@ export class WindowMenuFeature {
     // ------------------------
 
     enable() {
-        if (originalBuildMenu !== null) return;
-        originalBuildMenu = WindowMenu.prototype._buildMenu;
-        
-        const feature = this;
+        if (WindowMenu.prototype._buildMenu._isQuibblesPatch) {
+            console.warn("Quibbles: WindowMenu already patched. Skipping to prevent recursion.");
+            return;
+        }
 
-        WindowMenu.prototype._buildMenu = function(...args) {
-            originalBuildMenu.apply(this, args);
-
-            if (!feature._settings.get_boolean('enable-window-menu')) return;
+        if (originalBuildMenu === null) {
+            originalBuildMenu = WindowMenu.prototype._buildMenu;
             
-            feature._rebuildWithCustomOrder(this, feature._settings);
-        };
+            const feature = this;
+            const patchedBuildMenu = function(...args) {
+                if (originalBuildMenu) {
+                    originalBuildMenu.apply(this, args);
+                }
+
+                if (!feature._settings.get_boolean('enable-window-menu')) return;
+                
+                feature._rebuildWithCustomOrder(this, feature._settings);
+            };
+
+            patchedBuildMenu._isQuibblesPatch = true; 
+            
+            WindowMenu.prototype._buildMenu = patchedBuildMenu;
+        }
     }
 
     disable() {
-        if (originalBuildMenu) {
+        
+        if (WindowMenu.prototype._buildMenu._isQuibblesPatch && originalBuildMenu) {
             WindowMenu.prototype._buildMenu = originalBuildMenu;
             originalBuildMenu = null;
         }
