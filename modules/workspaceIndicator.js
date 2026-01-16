@@ -9,8 +9,8 @@
 
 'use strict';
 
-import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 import GObject from 'gi://GObject';
 import Gio from 'gi://Gio';
 import Clutter from 'gi://Clutter';
@@ -19,6 +19,7 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 const PAPERWM_UUID = 'paperwm@paperwm.github.com';
+const EXTENSION_STATE_ENABLED = 1;
 
 // -----------------------
 // --- HELPER FUNCTION ---
@@ -27,6 +28,11 @@ const PAPERWM_UUID = 'paperwm@paperwm.github.com';
 function _getPaperWMVisibleIndices() {
     const visible = new Set();
     const paperwm = Main.extensionManager.lookup(PAPERWM_UUID);
+
+    if (!paperwm || paperwm.state !== EXTENSION_STATE_ENABLED) {
+        return visible;
+    }
+
     const modules = paperwm?.stateObj?.modules;
     const tilingMod = Array.isArray(modules) ? modules.find(m => m?.Space) : null;
     const monitors = tilingMod?.spaces?.monitors;
