@@ -47,7 +47,7 @@ class SystemMenuAppButton extends QuickSettingsItem {
 // --- EXPORT CLASS ---
 // --------------------
 
-export class SystemMenuModule {
+export class SystemMenuFeature {
 
     constructor(settings) {
         this._settings = settings;

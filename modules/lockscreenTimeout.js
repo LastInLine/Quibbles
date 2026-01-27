@@ -54,7 +54,7 @@ const DisplayConfigProxy = Gio.DBusProxy.makeProxyWrapper(DisplayConfigIface);
 // --- EXPORT CLASS ---
 // --------------------
 
-export default class LockscreenTimeoutFeature {
+export default class LockscreenTimeout {
     constructor() {
         this._settings = null;
         this._displayProxy = null;

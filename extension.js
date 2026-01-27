@@ -5,16 +5,16 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 // User Session Features
 import { ActivitiesButtonFeature } from './modules/activitiesButton.js';
 import { ClockWeatherFeature } from './modules/clockWeather.js';
-import { EventHandler } from './modules/eventHandler.js';
+import { EventHandlerFeature } from './modules/eventHandler.js';
 import { MouseBarrierFeature } from './modules/mouseBarrier.js';
-import { ScreenshotButtonModule } from './modules/screenshotButton.js';
-import { SystemMenuModule } from './modules/systemMenu.js';
+import { ScreenshotButtonFeature } from './modules/screenshotButton.js';
+import { SystemMenuFeature } from './modules/systemMenu.js';
 import { WindowMenuFeature } from './modules/windowMenu.js';
 import { WorkspaceIndicatorFeature } from './modules/workspaceIndicator.js';
 // Lock Screen Features
 import LockscreenClock from './modules/lockscreenClock.js';
 import LockscreenFix from './modules/lockscreenFix.js';
-import LockscreenTimeoutFeature from './modules/lockscreenTimeout.js';
+import LockscreenTimeout from './modules/lockscreenTimeout.js';
 
 export default class QuibblesExtension extends Extension {
     
@@ -40,7 +40,7 @@ export default class QuibblesExtension extends Extension {
         }
         
         if (this._settings.get_boolean('enable-timeout')) {
-            const timeout = new LockscreenTimeoutFeature();
+            const timeout = new LockscreenTimeout();
             timeout.enable(this._settings);
             this._lockModules.push(timeout);
         }
@@ -68,10 +68,10 @@ export default class QuibblesExtension extends Extension {
             ActivitiesButtonFeature,
             MouseBarrierFeature,
             ClockWeatherFeature,
-            EventHandler,
+            EventHandlerFeature,
             WorkspaceIndicatorFeature,
-            SystemMenuModule,
-            ScreenshotButtonModule 
+            SystemMenuFeature,
+            ScreenshotButtonFeature 
         ];
 
         ModuleClasses.forEach(ModuleClass => {

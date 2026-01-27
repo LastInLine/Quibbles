@@ -17,7 +17,7 @@ import { findChildByClassName } from './shellUtils.js';
 // --- EXPORT CLASS ---
 // --------------------
 
-export class ScreenshotButtonModule {
+export class ScreenshotButtonFeature {
     constructor(settings) {
         this._settings = settings;
         this._button = null;

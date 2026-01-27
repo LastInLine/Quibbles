@@ -17,7 +17,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 // --- EXPORT CLASS ---
 // --------------------
 
-export class EventHandler {
+export class EventHandlerFeature {
     constructor(settings) {
         this._settings = settings;
         this._settingsSignalId = null;
