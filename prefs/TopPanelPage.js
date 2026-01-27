@@ -316,7 +316,7 @@ export class TopPanelPage {
         // --- Google Calendar Handler Toggle ---
         const gCalSwitchRow = createSwitch(
             _('Open Events in Google Calendar'),
-            _('Go to selected day in the default browser instead of GNOME Calendar'),
+            _('Go to selected day in the default browser instead of GNOME Calendar.'),
             settings,
             'google-calendar-handler-enabled'
         );
@@ -364,7 +364,7 @@ export class TopPanelPage {
         // --- Quick Settings ---
         const qsRow = new Adw.ActionRow({
             title: _('Quick Settings System Menu'),
-            subtitle: _('Add, remove, or reorder items in the system menu'),
+            subtitle: _('Add, remove, or reorder items in the system menu.'),
             activatable: true,
         });
         
