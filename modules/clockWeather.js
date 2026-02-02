@@ -21,9 +21,9 @@ import GWeather from 'gi://GWeather';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as Weather from 'resource:///org/gnome/shell/misc/weather.js';
 
-// -----------------------
-// --- HELPER CLASS #1 ---
-// -----------------------
+// --------------------
+// --- HELPER CLASS ---
+// --------------------
 
 const WeatherWidget = GObject.registerClass(
 class WeatherWidget extends St.BoxLayout {
@@ -62,7 +62,8 @@ class WeatherWidget extends St.BoxLayout {
             return GLib.SOURCE_REMOVE;
         });
     }
-
+    
+    // Fetch the data and refresh the icon and text
     _update() {
         if (!this._weatherClient) return;
 
@@ -73,16 +74,11 @@ class WeatherWidget extends St.BoxLayout {
         }
 
         const iconName = info.get_symbolic_icon_name();
-
         let tempValue = -1000;
         
-        // GWeather 4.0+ API check
-        if (info.get_value_temp) {
-            const [ok, value] = info.get_value_temp(GWeather.TemperatureUnit.DEFAULT);
-            if (ok) tempValue = value;
-        } else {
-            // Fallback for older API if necessary
-            tempValue = info.get_temp();
+        const [ok, value] = info.get_value_temp(GWeather.TemperatureUnit.DEFAULT);
+        if (ok) {
+            tempValue = value;
         }
         
         if (iconName && tempValue > -999) {
@@ -90,7 +86,6 @@ class WeatherWidget extends St.BoxLayout {
             this._label.text = `${Math.round(tempValue)}°`;
             this.visible = true;
         } else {
-            // Hide widget if data is incomplete
             this.visible = false;
         }
     }
@@ -145,6 +140,7 @@ export class ClockWeatherFeature {
     // --- Logic ---
     // -------------
 
+    // Check to see if the feature is enabled
     _syncState() {
         if (this._settings.get_boolean('clock-weather-enabled')) {
             this._enableFeature();
@@ -153,6 +149,7 @@ export class ClockWeatherFeature {
         }
     }
 
+    // Create container for merged date+weather button
     _enableFeature() {
         if (this._container) return; 
 
@@ -178,6 +175,7 @@ export class ClockWeatherFeature {
         }
     }
 
+    // Destroy container and restore original
     _disableFeature() {
         if (this._weatherWidget) {
             this._weatherWidget.destroy();

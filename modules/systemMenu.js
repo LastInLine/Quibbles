@@ -20,9 +20,9 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { QuickSettingsItem } from 'resource:///org/gnome/shell/ui/quickSettings.js';
 import { findChildByClassName } from './shellUtils.js';
 
-// -----------------------
-// --- HELPER CLASS #1 ---
-// -----------------------
+// --------------------
+// --- HELPER CLASS ---
+// --------------------
 
 const SystemMenuAppButton = GObject.registerClass(
 class SystemMenuAppButton extends QuickSettingsItem {

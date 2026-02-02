@@ -258,24 +258,9 @@ export class EventHandlerFeature {
         const date = this._lastKnownDate;
         if (!date) return;
 
-        let year, month, day;
-
-        // Support GLib.DateTime
-        if (typeof date.get_year === 'function') {
-            year = date.get_year();
-            month = date.get_month();
-            day = date.get_day_of_month();
-        } 
-        // Support standard JS Date
-        else if (typeof date.getFullYear === 'function') {
-            year = date.getFullYear();
-            month = date.getMonth() + 1;
-            day = date.getDate();
-        } 
-        else {
-            return;
-        }
-
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
         const viewMode = this._settings.get_string('google-calendar-default-view');
         const url = `https://calendar.google.com/calendar/r/${viewMode}/${year}/${month}/${day}`;
         

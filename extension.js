@@ -66,12 +66,12 @@ export default class QuibblesExtension extends Extension {
         
         const ModuleClasses = [
             ActivitiesButtonFeature,
-            MouseBarrierFeature,
             ClockWeatherFeature,
             EventHandlerFeature,
-            WorkspaceIndicatorFeature,
+            MouseBarrierFeature,
+            ScreenshotButtonFeature,
             SystemMenuFeature,
-            ScreenshotButtonFeature 
+            WorkspaceIndicatorFeature 
         ];
 
         ModuleClasses.forEach(ModuleClass => {

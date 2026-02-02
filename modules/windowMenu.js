@@ -52,10 +52,7 @@ export class WindowMenuFeature {
     // ------------------------
 
     enable() {
-        if (WindowMenu.prototype._buildMenu._isQuibblesPatch) {
-            console.warn("Quibbles: WindowMenu already patched. Skipping to prevent recursion.");
-            return;
-        }
+        if (WindowMenu.prototype._buildMenu._isQuibblesPatch) return;
 
         if (originalBuildMenu === null) {
             originalBuildMenu = WindowMenu.prototype._buildMenu;

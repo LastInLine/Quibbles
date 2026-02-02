@@ -59,6 +59,7 @@ export class ActivitiesButtonFeature {
     // --- Logic ---
     // -------------
 
+    // Update button visibility and reactivity
     _updateActivitiesButton() {
         if (!this._activitiesButton) return;
         

@@ -52,8 +52,8 @@ function _getPaperWMVisibleIndices() {
 // --- HELPER CLASS ---
 // --------------------
 
-const MyIndicator = GObject.registerClass(
-class MyIndicator extends PanelMenu.Button {
+const WorkspaceIndicator = GObject.registerClass(
+class WorkspaceIndicator extends PanelMenu.Button {
     _init(settings) {
         super._init(0.5, 'My Workspace Indicator');
 
@@ -207,7 +207,7 @@ export class WorkspaceIndicatorFeature {
     // Destroys and recreates the indicator
     _rebuild() {
         this._destroy();
-        this._indicator = new MyIndicator(this._settings);
+        this._indicator = new WorkspaceIndicator(this._settings);
         
         const position = this._settings.get_string('workspace-indicator-position');
         const index = this._settings.get_int('workspace-indicator-index');
