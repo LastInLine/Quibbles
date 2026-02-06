@@ -25,15 +25,28 @@ import * as SensorPicker from './sensorPicker.js';
 const TempIndicator = GObject.registerClass(
 class TempIndicator extends PanelMenu.Button {
     constructor(settings) {
-        super(0.0, 'Temp Indicator', false);
+        super(0.0, 'Temp Indicator', true);
         
         this._settings = settings;
         
         this.connect('event', (actor, event) => {
-            if (event.type() === Clutter.EventType.BUTTON_RELEASE) {
+            const type = event.type();
+            
+            if (type === Clutter.EventType.BUTTON_PRESS) {
+                this.add_style_pseudo_class('active');
+                return Clutter.EVENT_PROPAGATE;
+            }
+            
+            if (type === Clutter.EventType.BUTTON_RELEASE) {
+                this.remove_style_pseudo_class('active');
                 this._launchApp();
                 return Clutter.EVENT_STOP;
             }
+            
+            if (type === Clutter.EventType.LEAVE) {
+                this.remove_style_pseudo_class('active');
+            }
+
             return Clutter.EVENT_PROPAGATE;
         });
 
@@ -63,7 +76,6 @@ class TempIndicator extends PanelMenu.Button {
     // Define an app for the indicator to launch on click
     _launchApp() {
         const appId = this._settings.get_string('on-click-app');
-        
         if (!appId) return;
 
         const appSys = Shell.AppSystem.get_default();
@@ -81,6 +93,11 @@ class TempIndicator extends PanelMenu.Button {
         const visibleThreshold = this._settings.get_int('visible-threshold');
         const warningThreshold = this._settings.get_int('warning-threshold');
         
+        if (!sensorId) {
+            this.visible = false;
+            return;
+        }
+
         const tempC = SensorPicker.readSensorById(sensorId);
         
         if (tempC === null) {
@@ -110,9 +127,8 @@ export class TempWarningFeature {
     constructor(settings) {
         this._settings = settings;
         this._indicator = null;
-        this._timeout = null;
-        this._settingsChangedId = null;
-        this._enabledChangedId = null;
+        this._updateLoopId = null;
+        this._signals = [];
     }
 
     // ------------------------
@@ -120,78 +136,84 @@ export class TempWarningFeature {
     // ------------------------
 
     enable() {
-        if (!this._settings.get_boolean('temperature-warning-enabled')) {
-            this._enabledChangedId = this._settings.connect('changed::temperature-warning-enabled', () => {
-                this.disable();
-                this.enable();
-            });
-            return;
-        }
-        
-        this._buildUI();
-        this._settingsChangedId = this._settings.connect('changed', (settings, key) => {
-            if (key === 'temperature-warning-enabled') {
-                if (!settings.get_boolean(key)) {
-                    this.disable();
-                    this.enable(); 
-                }
-            } else if (key === 'temperature-warning-position' || key === 'temperature-warning-index') {
-                this._rebuildUI();
-            }
-        });
-        
-        this._timeout = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 3, () => {
+        this._signals.push(this._settings.connect(
+            'changed::temperature-warning-enabled', 
+            () => this._syncEnabledState()
+        ));
+
+        const onPositionChange = () => {
             if (this._indicator) {
-                this._indicator.update();
+                this._destroyUI();
+                this._createUI();
             }
-            return GLib.SOURCE_CONTINUE;
+        };
+        
+        this._signals.push(this._settings.connect(
+            'changed::temperature-warning-position', 
+            onPositionChange
+        ));
+        
+        this._signals.push(this._settings.connect(
+            'changed::temperature-warning-index', 
+            onPositionChange
+        ));
+
+        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            this._syncEnabledState();
+            return GLib.SOURCE_REMOVE;
         });
     }
 
     disable() {
-        if (this._timeout) {
-            GLib.source_remove(this._timeout);
-            this._timeout = null;
-        }
-
-        if (this._settingsChangedId) {
-            this._settings.disconnect(this._settingsChangedId);
-            this._settingsChangedId = null;
-        }
-
-        if (this._enabledChangedId) {
-            this._settings.disconnect(this._enabledChangedId);
-            this._enabledChangedId = null;
-        }
+        this._signals.forEach(id => this._settings.disconnect(id));
+        this._signals = [];
         
-        if (this._indicator) {
-            this._indicator.destroy();
-            this._indicator = null;
-        }
+        this._destroyUI();
     }
 
     // -------------
     // --- Logic ---
     // -------------
 
-    // Builds widget
-    _buildUI() {
-        this._indicator = new TempIndicator(this._settings);
-        
-        const side = this._settings.get_string('temperature-warning-position');
-        const index = this._settings.get_int('temperature-warning-index');
-
-        Main.panel.addToStatusArea('temp-warning', this._indicator, index, side);
+    // Watch for master toggle
+    _syncEnabledState() {
+        const enabled = this._settings.get_boolean('temperature-warning-enabled');
+        if (enabled && !this._indicator) {
+            this._createUI();
+        } else if (!enabled && this._indicator) {
+            this._destroyUI();
+        }
     }
 
-    // Rebuilds widget on move
-    _rebuildUI() {
+    // Create the widget
+    _createUI() {
+        this._indicator = new TempIndicator(this._settings);
+        
+        const position = this._settings.get_string('temperature-warning-position');
+        const index = this._settings.get_int('temperature-warning-index');
+
+        Main.panel.addToStatusArea('temp-warning', this._indicator, index, position);
+        
+        this._indicator.update();
+
+        this._updateLoopId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 3, () => {
+             if (this._indicator) {
+                 this._indicator.update();
+             }
+             return GLib.SOURCE_CONTINUE;
+        });
+    }
+
+    // Destroy the widget
+    _destroyUI() {
+        if (this._updateLoopId) {
+            GLib.source_remove(this._updateLoopId);
+            this._updateLoopId = null;
+        }
+        
         if (this._indicator) {
             this._indicator.destroy();
             this._indicator = null;
         }
-        
-        this._buildUI();
-        this._indicator.update();
     }
 }

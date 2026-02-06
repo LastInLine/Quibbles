@@ -8,9 +8,33 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 
+let _cachedPath = null;
+let _cachedId = null;
+
 function decode(bytes) {
     if (!bytes) return '';
     return new TextDecoder().decode(bytes).trim();
+}
+
+function _resolveSensorPath(targetId) {
+    const [targetDevice, targetFile] = targetId.split(':');
+    const baseDir = Gio.File.new_for_path('/sys/class/hwmon');
+
+    if (!baseDir.query_exists(null)) return null;
+
+    const enumerator = baseDir.enumerate_children('standard::name', 0, null);
+    let info;
+    while ((info = enumerator.next_file(null))) {
+        const folderPath = `/sys/class/hwmon/${info.get_name()}`;
+        const [s, nBytes] = GLib.file_get_contents(`${folderPath}/name`);
+        if (s && decode(nBytes) === targetDevice) {
+            const fullPath = `${folderPath}/${targetFile}`;
+            if (Gio.File.new_for_path(fullPath).query_exists(null)) {
+                return fullPath;
+            }
+        }
+    }
+    return null;
 }
 
 // --------------------------
@@ -21,55 +45,34 @@ export function getSensorList() {
     const sensors = [];
     const baseDir = Gio.File.new_for_path('/sys/class/hwmon');
 
-    // Verify the base directory exists before enumerating
-    if (!baseDir.query_exists(null))
-        return sensors;
+    if (!baseDir.query_exists(null)) return sensors;
 
-    const enumerator = baseDir.enumerate_children(
-        'standard::name',
-        Gio.FileQueryInfoFlags.NONE,
-        null
-    );
-
+    const enumerator = baseDir.enumerate_children('standard::name', 0, null);
     let info;
     while ((info = enumerator.next_file(null))) {
         const folderPath = `/sys/class/hwmon/${info.get_name()}`;
-        const nameFile = Gio.File.new_for_path(`${folderPath}/name`);
-        
-        if (!nameFile.query_exists(null))
-            continue;
-        
         const [nSuccess, nBytes] = GLib.file_get_contents(`${folderPath}/name`);
-        if (!nSuccess)
-            continue;
+        
+        if (!nSuccess) continue;
         
         const deviceName = decode(nBytes);
         const deviceDir = Gio.File.new_for_path(folderPath);
-        
-        if (!deviceDir.query_exists(null))
-            continue;
-
         const deviceEnum = deviceDir.enumerate_children('standard::name', 0, null);
 
         let fileInfo;
         while ((fileInfo = deviceEnum.next_file(null))) {
             const filename = fileInfo.get_name();
-            
             if (filename.startsWith('temp') && filename.endsWith('_input')) {
                 const id = `${deviceName}:${filename}`;
-                
-                // Construct the label path and check if it exists
                 const labelPath = `${folderPath}/${filename.replace('_input', '_label')}`;
                 const labelFile = Gio.File.new_for_path(labelPath);
                 
                 let labelText = '';
                 if (labelFile.query_exists(null)) {
                     const [lSuccess, lBytes] = GLib.file_get_contents(labelPath);
-                    if (lSuccess)
-                        labelText = decode(lBytes);
+                    if (lSuccess) labelText = decode(lBytes);
                 }
                 
-                // Fallback to the prefix (e.g. temp1) if no label is found
                 const finalLabel = labelText || filename.split('_')[0];
                 sensors.push({ id, label: `${deviceName} (${finalLabel})` });
             }
@@ -83,34 +86,22 @@ export function getSensorList() {
 // ------------------------------
 
 export function readSensorById(targetId) {
-    if (!targetId || !targetId.includes(':'))
-        return null;
+    if (!targetId || !targetId.includes(':')) return null;
 
-    const [targetDevice, targetFile] = targetId.split(':');
-    const baseDir = Gio.File.new_for_path('/sys/class/hwmon');
-
-    if (!baseDir.query_exists(null))
-        return null;
-
-    const enumerator = baseDir.enumerate_children('standard::name', 0, null);
-    let info;
-    while ((info = enumerator.next_file(null))) {
-        const folderPath = `/sys/class/hwmon/${info.get_name()}`;
-        const nameFile = Gio.File.new_for_path(`${folderPath}/name`);
-        
-        if (!nameFile.query_exists(null))
-            continue;
-
-        const [s, nBytes] = GLib.file_get_contents(`${folderPath}/name`);
-        if (s && decode(nBytes) === targetDevice) {
-            const sensorFile = Gio.File.new_for_path(`${folderPath}/${targetFile}`);
-            if (!sensorFile.query_exists(null))
-                return null;
-
-            const [vSuccess, vBytes] = GLib.file_get_contents(`${folderPath}/${targetFile}`);
-            if (vSuccess)
-                return parseInt(decode(vBytes)) / 1000;
-        }
+    if (_cachedId !== targetId) {
+        _cachedPath = _resolveSensorPath(targetId);
+        _cachedId = _cachedPath ? targetId : null;
     }
+
+    if (!_cachedPath) return null;
+
+    const [vSuccess, vBytes] = GLib.file_get_contents(_cachedPath);
+    if (vSuccess) {
+        const val = parseInt(decode(vBytes));
+        return isNaN(val) ? null : val / 1000;
+    }
+    
+    _cachedPath = null;
+    _cachedId = null;
     return null;
 }
