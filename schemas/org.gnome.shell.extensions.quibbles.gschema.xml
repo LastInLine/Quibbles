@@ -41,7 +41,7 @@
     
     <!-- Master switch -->
     <key name="enable-window-menu" type="b">
-      <default>true</default>
+      <default>false</default>
       <summary>Enable Window Menu Modifications</summary>
       <description>A master switch to enable or disable all window titlebar context menu modifications.</description>
     </key>
@@ -69,7 +69,7 @@
     
      <!-- Lockscreen custom master switch -->
     <key name="clock-enabled" type="b">
-      <default>true</default>
+      <default>false</default>
       <summary>Enable Lockscreen Clock</summary>
     </key>
 
@@ -82,14 +82,14 @@
 
     <!-- Lockscreen timeout master switch -->
     <key name="enable-timeout" type="b">
-      <default>true</default>
+      <default>false</default>
       <summary>Enable the "Lockscreen Timeout" feature</summary>
       <description>If true, the lockscreen will delay fading to black.</description>
     </key>
     
     <!-- Lockscreen timeout on AC -->
     <key name="power" type="b">
-      <default>true</default>
+      <default>false</default>
       <summary>Only delay screen off when on AC power</summary>
       <description>If true, the screen will turn off when the device is on battery power.</description>
     </key>
@@ -109,7 +109,7 @@
     
     <!-- Google Calendar handler toggle -->
     <key name="google-calendar-handler-enabled" type="b">
-      <default>true</default>
+      <default>false</default>
       <summary>Enable Google Calendar Redirect</summary>
       <description>Hijacks the GNOME Shell calendar buttons to open Google Calendar in Firefox.</description>
     </key>
@@ -209,7 +209,7 @@
     
     <!-- System Menu launcher -->
     <key name="system-menu-apps" type="as">
-      <default>['gnome-control-center.desktop']</default>
+      <default>['org.gnome.Settings.desktop']</default>
       <summary>Applications to show in the system menu.</summary>
       <description>List of .desktop file IDs.</description>
     </key>
