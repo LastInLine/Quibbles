@@ -5,7 +5,7 @@
 
 # Quibbles
 
-A personal project to alleviate annoyances from the GNOME shell, particularly when used with the superb [PaperWM](https://github.com/paperwm/PaperWM) window manager
+An abandoned personal project to alleviate annoyances from the GNOME shell, particularly when used with the superb [PaperWM](https://github.com/paperwm/PaperWM) window manager. Unfortunately, the quibbles got to me and I've moved on to Niri. This project worked with GNOME 50 just prior to its release and the CPU temperature monitor feature from the dev branch was added as it was. It worked well for me but the code from that module isn't as clean as I'd like. 
 
 ## Description
 
