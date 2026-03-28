@@ -30,9 +30,7 @@ export default [
             "eqeqeq": "warn",
             "no-var": "error",
             "prefer-const": "warn",
-            
-            // Allow empty catch blocks (which we just made), but warn on other empty blocks
-            "no-empty": ["warn", { "allowEmptyCatch": true }]
+            "no-empty": "error"
         }
     }
 ];

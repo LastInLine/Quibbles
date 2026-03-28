@@ -127,6 +127,74 @@
       </choices>
     </key>
     
+    <!-- === Temperature Warning Widget === -->
+
+    <!-- === Temperature widget toggle -->  
+    <key name="temperature-warning-enabled" type="b">
+      <default>false</default>
+      <summary>Enable Temperature Warning</summary>
+      <description>
+        Master switch to enable or disable the temperature warning feature.
+      </description>
+    </key>
+    
+    <!-- Sensor ID label -->
+    <key name="sensor-id" type="s">
+      <default>""</default>
+      <summary>Temperature Sensor ID</summary>
+      <description>
+        The stable identifier for the sensor. If empty, the temperature monitor will be hidden.
+      </description>
+    </key>
+
+    <!-- Level at which the widget is visible -->
+    <key name="visible-threshold" type="i">
+      <default>65</default>
+      <summary>Visibility Threshold (Celsius)</summary>
+      <description>
+        The temperature at which the monitor appears in the panel.
+      </description>
+    </key>
+
+    <!-- Level at which the warning emoji is added -->
+    <key name="warning-threshold" type="i">
+      <default>85</default>
+      <summary>Warning Threshold (Celsius)</summary>
+      <description>
+        The temperature at which the fire emoji is appended to the label.
+      </description>
+    </key>
+
+    <!-- App to launch on click of the widget -->
+    <key name="on-click-app" type="s">
+      <default>""</default>
+      <summary>On Click App ID</summary>
+      <description>
+        The .desktop ID of the application to launch when clicked 
+        (e.g., "org.gnome.SystemMonitor.desktop").
+      </description>
+    </key>
+
+    <!-- Temperature warning position -->
+    <key name="temperature-warning-position" type="s">
+      <default>'right'</default>
+      <summary>Panel Position</summary>
+      <description>
+        Which box of the top panel to place the indicator in 
+        ('left', 'center', or 'right').
+      </description>
+    </key>
+
+    <!-- Temperature warning index -->
+    <key name="temperature-warning-index" type="i">
+      <default>0</default>
+      <summary>Panel Index</summary>
+      <description>
+        The position within the specified panel box.
+        0 usually places it to the left of existing items in the Right box.
+      </description>
+    </key>
+    
     <!-- === Quick Settings === -->
            
     <key name="remove-mouse-barrier" type="b">

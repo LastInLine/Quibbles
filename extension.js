@@ -9,6 +9,7 @@ import { EventHandlerFeature } from './modules/eventHandler.js';
 import { MouseBarrierFeature } from './modules/mouseBarrier.js';
 import { ScreenshotButtonFeature } from './modules/screenshotButton.js';
 import { SystemMenuFeature } from './modules/systemMenu.js';
+import { TempWarningFeature } from './modules/tempWarning.js';
 import { WindowMenuFeature } from './modules/windowMenu.js';
 import { WorkspaceIndicatorFeature } from './modules/workspaceIndicator.js';
 // Lock Screen Features
@@ -71,6 +72,7 @@ export default class QuibblesExtension extends Extension {
             MouseBarrierFeature,
             ScreenshotButtonFeature,
             SystemMenuFeature,
+            TempWarningFeature,
             WorkspaceIndicatorFeature 
         ];
 
