@@ -6,11 +6,7 @@
     "49",
     "50"
   ],
-<<<<<<< HEAD
-  "version-name": "1.4.2",
-=======
   "version-name": "1.5.0",
->>>>>>> refs/heads/dev
   "url": "https://github.com/LastInLine/Quibbles",
   "settings-schema": "org.gnome.shell.extensions.quibbles",
   "session-modes": [
